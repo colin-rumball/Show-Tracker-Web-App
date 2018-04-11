@@ -1,0 +1,20 @@
+{
+    "test": {
+        "PORT": 3000,
+        "MONGODB_URI": "mongodb://192.168.1.9:27017/RumballHomeVideosAppTest",
+		"SESSION_SECRET": "nsiSA)P<ANWZo(KosVa]?3AB|v*h3?",
+		"LOCAL_SITE_URL": "http://localhost:3000",
+		"YOUTUBE_URL": "http://localhost:5000",
+		"MASTER_AUTH_TOKEN": "v7Y=rHn1^?fuYJOuZx|f=G-|emBr|e]$MxHRMoi?:SG3+goT|s3S(=z=2XAD",
+		"PATH_TO_CLIPS": "E:/Development-Environment/Family-Videos-Web-Server/clips"
+    },
+    "development": {
+        "PORT": 3000,
+        "MONGODB_URI": "mongodb://192.168.1.9:27017/RumballHomeVideosApp",
+        "SESSION_SECRET": "nsiSA)P<ANWZo(KosVa]?3AB|v*h3?",
+		"LOCAL_SITE_URL": "http://localhost:3000",
+		"YOUTUBE_URL": "http://localhost:5000",
+		"MASTER_AUTH_TOKEN": "v7Y=rHn1^?fuYJOuZx|f=G-|emBr|e]$MxHRMoi?:SG3+goT|s3S(=z=2XAD",
+		"PATH_TO_CLIPS": "E:/Development-Environment/Family-Videos-Web-Server/clips"
+    }
+}
