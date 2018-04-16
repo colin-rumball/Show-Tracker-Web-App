@@ -43,7 +43,7 @@ $(function() {
 	$('#new-show-results-container').on('click', '.new-show-button', function () {
 		var id = this.dataset.show_id;
 		$.ajax({
-			url: '/show/add/' + id,
+			url: '/show/' + id,
 			type: 'POST'
 		});
 	});

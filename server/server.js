@@ -8,6 +8,7 @@ const express = require('express'),
 	path = require('path'),
 	moment = require('moment'),
 	hbs = require('hbs'),
+	rarbgApi = require('rarbg-api'),
 	favicon = require('serve-favicon');
 
 var {ObjectID} = require('mongodb');
@@ -68,9 +69,13 @@ app.get('/show/:id', (req, res) => {
 		});
 		res.send(episodes);
 	});
-})
+});
 
-app.post('/show/add/:id', (req, res) => {
+app.get('/torrents/:query', (req, res) => {
+	var q = req.params.query;
+});
+
+app.post('/show/:id', (req, res) => {
 	var id = req.params.id;
 	fs.readJson(PATH_TO_SHOWS_JSON).then((showsJson) => {
 		showsJson.show_ids.push(Number.parseInt(id));
