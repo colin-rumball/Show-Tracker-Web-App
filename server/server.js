@@ -8,6 +8,7 @@ const express = require('express'),
 	path = require('path'),
 	moment = require('moment'),
 	hbs = require('hbs'),
+	prettyBytes = require('pretty-bytes'),
 	rarbgApi = require('rarbg-api'),
 	favicon = require('serve-favicon');
 
@@ -24,7 +25,7 @@ var app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use('/public', express.static(path.join(__dirname, '..', 'public')));
+
 app.use(favicon(path.join(__dirname, 'favicon', 'favicon.ico')));
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'hbs');
@@ -71,9 +72,47 @@ app.get('/show/:id', (req, res) => {
 	});
 });
 
-app.get('/torrents/:query', (req, res) => {
-	var q = req.params.query;
+// Put this before registering the static public file so we can return templates from the views folder
+app.get('/public/templates/:template', (req, res) => {
+	var template = req.params.template;
+	fs.readFile(path.join(__dirname, '..', 'views', 'partials', template))
+	.then((file) => {
+		res.send(file);
+	}).catch((e) => {
+		res.sendStatus(404);
+	});
 });
+app.use('/public', express.static(path.join(__dirname, '..', 'public')));
+
+app.get('/torrents/:id', (req, res) => {
+	var id = req.params.id;
+	Episode.findById(id).then((episode) => {
+		var season = `s${("0" + episode.season).slice(-2)}`;
+		var number = `e${("0" + episode.number).slice(-2)}`;
+		var q = `${episode.show.name} ${season}${number}`;
+		getTorrents(q).then((torrents) => {
+			torrents.forEach(torrent => {
+				torrent.size = prettyBytes(torrent.size);
+			});
+			res.send(torrents);
+		}).catch((e) => {
+			res.send(null);
+		});
+	});
+});
+
+async function getTorrents(query) {
+	var requestsMade = 0;
+	var torrents = null;
+	while (requestsMade < 5 && torrents == null) {
+		requestsMade++;
+		torrents = await rarbgApi.search(query, {
+			category: rarbgApi.CATEGORY.TV_HD_EPISODES,
+			sort: 'seeders'
+		});
+	}
+	return torrents;
+}
 
 app.post('/show/:id', (req, res) => {
 	var id = req.params.id;
@@ -83,6 +122,10 @@ app.post('/show/:id', (req, res) => {
 			RefreshShowInfos(showsJson.last_updated);
 		});
 	});
+});
+
+app.post('/download', (req, res) => {
+	var magnetLink = req.body.link;
 });
 
 app.delete('/episode/:id', (req, res) => {
