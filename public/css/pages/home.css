@@ -47,6 +47,10 @@ body {
 	border-radius: 6px;
 }
 
+.faded {
+	opacity: 0.67;
+}
+
 .show-image-container {
 	position: relative;
 	display: block;

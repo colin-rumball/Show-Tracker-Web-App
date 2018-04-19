@@ -2,11 +2,21 @@
     "test": {
         "PORT": 3000,
         "MONGODB_URI": "mongodb://192.168.1.9:27017/ShowTrackerAppTest",
-		"LOCAL_SITE_URL": "http://localhost:3000"
+		"LOCAL_SITE_URL": "http://localhost:3000",
+		"UPDATE_FREQUENCY": 86400000,
+		"BITTORRENT_IP": "192.168.1.1",
+		"BITTORRENT_PORT": "8080",
+		"BITTORRENT_USER": "user",
+		"BITTORRENT_PASS": "password"
     },
     "development": {
         "PORT": 3000,
         "MONGODB_URI": "mongodb://192.168.1.9:27017/ShowTrackerApp",
-		"LOCAL_SITE_URL": "http://localhost:3000"
+		"LOCAL_SITE_URL": "http://localhost:3000",
+		"UPDATE_FREQUENCY": 86400000,
+		"BITTORRENT_IP": "192.168.1.1",
+		"BITTORRENT_PORT": "8080",
+		"BITTORRENT_USER": "user",
+		"BITTORRENT_PASS": "password"
     }
 }

@@ -7,6 +7,7 @@ var Episode = mongoose.model('Episode', {
 	number: Number,
 	date: Number,
 	date_formatted: String,
+	premiered: Boolean,
 	summary: String,
 	api_id: Number,
 	show: {

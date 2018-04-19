@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	{{> head }}
+	<link rel="stylesheet" type="text/css" href="/public/css/pages/home.css">
+	<script src="/public/js/pages/home.js"></script>
+	<title>{{show.name}} | Show Tracker</title>
+</head>
+
+<body>
+	<div class="container">
+		<h3>{{show.name}}</h3>
+		{{!-- EPISODES --}}
+		<div id="episodes-container">
+			{{#each episodes}} {{> episode }} {{/each}}
+		</div>
+	</div>
+</body>
+
+</html>

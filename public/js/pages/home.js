@@ -54,7 +54,7 @@ $(function() {
 			success: function (episodeTemplate) {
 				$.ajax({
 					type: "GET",
-					url: '/show/' + id.toString(),
+					url: '/show/' + id.toString() + '/episodes.json',
 					success: function (data) {
 						$('#showing-text').html('Showing: ' + showName);
 						var episodeFunc = Handlebars.compile(episodeTemplate);
@@ -69,9 +69,13 @@ $(function() {
 
 	$('#new-show-results-container').on('click', '.new-show-button', function () {
 		var id = this.dataset.show_id;
+		var fromBeginning = $('#from-beginning-checkbox').is(':checked');
 		$.ajax({
 			url: '/show/' + id,
-			type: 'POST'
+			type: 'POST',
+			dataType: 'json',
+			contentType: 'application/json',
+			data: JSON.stringify({ fromBeginning: fromBeginning})
 		});
 	});
 
@@ -79,7 +83,7 @@ $(function() {
 		var link = {link: this.dataset.magnet};
 		var thisButton = this;
 		$.ajax({
-			url: '/download',
+			url: '/torrents',
 			type: 'POST',
 			data: link,
 			success: function() {
