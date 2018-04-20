@@ -30,6 +30,7 @@
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
     "serve-favicon": "^2.5.0",
+    "transmission": "^0.4.9",
     "utorrent-api": "^0.1.5"
   }
 }

@@ -11,26 +11,30 @@
 	{{> modals/newShowSearch }}
 	{{> modals/newShowResults }}
 
+	
 	<div class="container">
-		{{!-- SHOWS DROP DOWN --}}
-		<div class="dropdown">
-			<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
-			 aria-expanded="false">
-				Shows
-			</button>
-			<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-				<button class="dropdown-item" data-show_id="0">All</button>
-				<div class="dropdown-divider"></div>
-				{{#each shows}}
-					{{> show_dropdown}}
-				{{/each}}
+		<div class="basic-nav">
+			<a href="/"><img src="/public/images/logo.png" alt="Logo" class="site-logo"> <h3 style="display:inline-block"> Show Tracker</h3></a>
+			{{!-- ADD SHOW --}}
+			<div class="add-show-container">
+				<input class="btn btn-primary" id="add-show-button" type="button" value="Add New Show" data-toggle="modal" data-target="#search-modal">
+			</div>
+			{{!-- SHOWS DROP DOWN --}}
+			<div class="dropdown">
+				<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+				aria-expanded="false">
+					Shows
+				</button>
+				<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+					<button class="dropdown-item" data-show_id="0">All</button>
+					<div class="dropdown-divider"></div>
+					{{#each shows}}
+						{{> show_dropdown}}
+					{{/each}}
+				</div>
 			</div>
 		</div>
-		<span id="showing-text">Showing: All</span>
-		{{!-- ADD SHOW --}}
-		<div class="add-show-container">
-			<input class="btn btn-primary" id="add-show-button" type="button" value="Add New Show" data-toggle="modal" data-target="#search-modal">
-		</div>
+		
 		{{!-- EPISODES --}}
 		<div id="episodes-container">
 			{{#each episodes}} 

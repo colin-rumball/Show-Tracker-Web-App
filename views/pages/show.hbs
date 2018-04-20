@@ -5,12 +5,20 @@
 	{{> head }}
 	<link rel="stylesheet" type="text/css" href="/public/css/pages/home.css">
 	<script src="/public/js/pages/home.js"></script>
+	<script src="/public/js/pages/show.js"></script>
 	<title>{{show.name}} | Show Tracker</title>
 </head>
 
 <body>
+	
 	<div class="container">
-		<h3>{{show.name}}</h3>
+		<div class="basic-nav">
+			<a href="/">
+				<img src="/public/images/logo.png" alt="Logo" class="site-logo">
+				<h3 style="display: inline-block">Show Tracker | {{show.name}}</h3>
+			</a>
+			<input class="btn btn-danger remove-show-button" type="button" value="Delete Show" data-show_id="{{show._id}}">
+		</div>
 		{{!-- EPISODES --}}
 		<div id="episodes-container">
 			{{#each episodes}} {{> episode }} {{/each}}

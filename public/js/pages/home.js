@@ -9,7 +9,7 @@ $(function() {
 		var id = this.dataset.episode_id;
 		$.ajax({
 			type: "GET",
-			url: '/torrents/' + id.toString(),
+			url: '/episode/torrents/' + id.toString(),
 			success: function (torrents) {
 				if (torrents != null && torrents != "") {
 					$('#new-show-results-container').html('');
@@ -44,7 +44,6 @@ $(function() {
 	});
 
 	$('.dropdown-item').click(function () {
-		var showName = this.textContent;
 		var id = this.dataset.show_id;
 		document.getElementById('episodes-container').innerHTML = '';
 
@@ -56,7 +55,6 @@ $(function() {
 					type: "GET",
 					url: '/show/' + id.toString() + '/episodes.json',
 					success: function (data) {
-						$('#showing-text').html('Showing: ' + showName);
 						var episodeFunc = Handlebars.compile(episodeTemplate);
 						for (var i = 0; i < data.length; i++) {
 							document.getElementById('episodes-container').innerHTML += episodeFunc(data[i]);
@@ -73,9 +71,9 @@ $(function() {
 		$.ajax({
 			url: '/show/' + id,
 			type: 'POST',
-			dataType: 'json',
-			contentType: 'application/json',
-			data: JSON.stringify({ fromBeginning: fromBeginning})
+			success: function(data) {
+				location.href = '/show/' + data.name;
+			}
 		});
 	});
 

@@ -11,14 +11,17 @@ const express = require('express'),
 	prettyBytes = require('pretty-bytes'),
 	rarbgApi = require('rarbg-api'),
 	utorrent = require('utorrent-api'),
+	transmission = require('transmission'),
 	favicon = require('serve-favicon');
 
 var {ObjectID} = require('mongodb');
 var {mongoose} = require('./db/mongoose');
-var {Show} = require('./models/Show');
 var {Episode} = require('./models/Episode');
+var {Show} = require('./models/Show');
 
-var utorrentClient = new utorrent(process.env.BITTORRENT_USER, process.env.BITTORRENT_USER);
+var transmissionClient = new transmission();
+
+var utorrentClient = new utorrent(process.env.BITTORRENT_IP, process.env.BITTORRENT_PORT);
 utorrentClient.setCredentials(process.env.BITTORRENT_USER, process.env.BITTORRENT_PASS);
 
 const SERVER_PORT = process.env.PORT;
@@ -41,20 +44,33 @@ hbs.registerPartials(__dirname + '/../views/partials', () => {
 });
 
 app.get('/', async (req, res) => {
-	CheckAndUpdateAllShows();
+	TryUpdateAllInfo();
 	var shows = await Show.find({});
-	var episodes = await getSortedEpisodes({});
+	var episodes = await Episode.GetSortedEpisodes({});
 	res.render('pages/home', {
 		episodes,
 		shows
 	});
 });
 
+async function TryUpdateAllInfo() {
+	var lastUpdate = 1;//mongoose.get('last-update');
+	// If it's been at least 24 hours since the last update
+	if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf()) {
+		mongoose.set('last-update', moment().valueOf());
+		await Show.UpdateAllShows();
+		await Episode.UpdateAllEpisodes();
+	}
+}
+
 app.get('/show/:showName', async (req, res) => {
 	var showName = req.params.showName;
 	var show = await Show.findOne({name: showName});
 	if (show != null) {
-		var episodes = await getSortedEpisodes({'show.api_id': show.api_id});
+		var episodes = await Episode.GetSortedEpisodes({'show.api_id': show.api_id}, true);
+		episodes.forEach(episode => {
+			episode.alternativeStyle = true;
+		});
 		res.render('pages/show', {
 			episodes,
 			show
@@ -68,25 +84,26 @@ app.get('/show/:showName', async (req, res) => {
 app.get('/show/:id/episodes.json', async (req, res) => {
 	var id = req.params.id;
 	var query = id == 0 ? {} : { "show.mongo_id": id };
-	var episodes = await getSortedEpisodes(query);
+	var episodes = await Episode.GetSortedEpisodes(query);
 	res.send(episodes);
 });
 
-app.get('/torrents/:id', (req, res) => {
-	var id = req.params.id;
-	Episode.findById(id).then((episode) => {
+app.get('/episode/torrents/:id', async (req, res) => {
+	var mongo_id = req.params.id;
+	var episode = await Episode.findById(mongo_id)
+	if (episode != null) {
 		var season = `s${("0" + episode.season).slice(-2)}`;
 		var number = `e${("0" + episode.number).slice(-2)}`;
 		var q = `${episode.show.name} ${season}${number}`;
-		getTorrents(q).then((torrents) => {
-			torrents.forEach(torrent => {
-				torrent.size = prettyBytes(torrent.size);
-			});
-			res.send(torrents);
-		}).catch((e) => {
-			res.send(null);
+		var torrents = await getTorrents(q)
+		torrents.forEach(torrent => {
+			torrent.size = prettyBytes(torrent.size);
 		});
-	});
+		res.send(torrents);
+	}
+	else {
+		res.send(null);
+	}
 });
 
 // Put this before registering the static public file so we can return templates from the views folder
@@ -101,62 +118,45 @@ app.get('/public/templates/:template', (req, res) => {
 });
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
-app.post('/show/:id', (req, res) => {
-	var id = req.params.id;
+app.post('/show/:id', async (req, res) => {
+	var api_id = req.params.id;
 	var fromBeginning = req.body.fromBeginning;
-	AddOrRefreshShowEpisodeData(id, fromBeginning ? 1 : moment().valueOf());
-	res.sendStatus(200);
+	var newShow = await Show.AddShow(api_id, fromBeginning);
+	await Episode.AddAllEpisodes(newShow);
+	res.send({name: newShow.name});
 });
 
 app.post('/update', async (req, res) => {
-	var updated = await CheckAndUpdateAllShows(true);
-	res.sendStatus(updated ? 200 : 500);
+	await Show.UpdateAllShows();
+	await Episode.UpdateAllEpisodes();
+	res.sendStatus(200);
 });
 
 app.post('/torrents', (req, res) => {
 	var magnetLink = req.body.link;
-	utorrentClient.call('add-url', {s: magnetLink}, (err) => {
-		if (err) {
-			return res.sendStatus(500);
-		}
-		res.sendStatus(200);
+	transmissionClient.addUrl(magnetLink, function(err, arg) {
+		console.log(err, arg);
 	});
+	// utorrentClient.call('add-url', {s: magnetLink}, (err) => {
+	// 	if (err) {
+	// 		return res.sendStatus(500);
+	// 	}
+	// 	res.sendStatus(200);
+	// });
 });
 
 app.delete('/show/:id', async (req, res) => {
-	var id = req.params.id;
-	var show = await Show.findByIdAndRemove(id);
-	var episodes = await Episode.find({'show.api_id': show.api_id});
-	episodes.forEach(episode => {
-		episode.remove();
-	});
+	var mongo_id = req.params.id;
+	var show = await Show.PermanentlyRemoveShow(mongo_id);
+	await Episode.PermanentlyRemoveEpisodes({ 'show.api_id': show.api_id });
 	res.sendStatus(200);
 });
 
-app.delete('/episode/:id', (req, res) => {
-	var id = req.params.id;
-	Episode.findByIdAndRemove(id, (episode) => {
-		res.sendStatus(200);
-	});
+app.delete('/episode/:id', async (req, res) => {
+	var mongo_id = req.params.id;
+	Episode.RemoveEpisode(mongo_id);
+	res.sendStatus(200);
 });
-
-function getSortedEpisodes(query) {
-	return Episode.find(query).then((episodes) => {
-		// Order episodes so that the ones that air soonest are first
-		episodes.sort(episodeSorter);
-		return episodes;
-	});
-}
-
-function episodeSorter(a, b) {
-	if (a.date == b.date) {
-		if (a.season == b.season) {
-			return a.number - b.number;
-		}
-		return a.season - b.season;
-	}
-	return a.date - b.date;
-}
 
 async function getTorrents(query) {
 	var requestsMade = 0;
@@ -169,107 +169,4 @@ async function getTorrents(query) {
 		});
 	}
 	return torrents;
-}
-
-async function CheckAndUpdateAllShows(forceUpdate = false) {
-	var lastUpdate = mongoose.get('last-update') || (moment().valueOf() - UPDATE_FREQUENCY);
-	// If it's been at least 24 hours since the last update
-	if (forceUpdate || lastUpdate + UPDATE_FREQUENCY < moment().valueOf()) {
-		mongoose.set('last-update', moment().valueOf());
-		RefreshAllShowEpisodeData(lastUpdate);
-	}
-	return true;
-}
-
-function RefreshAllShowEpisodeData(lastUpdatedDate) {
-	Show.find({}).then((shows) => {
-		// Loop through each show
-		shows.forEach(show => {
-			AddOrRefreshShowEpisodeData(show.api_id, lastUpdatedDate);
-		});
-	});
-}
-
-function AddOrRefreshShowEpisodeData(showId, lastUpdatedDate) {
-	// get api info
-	request.get('http://api.tvmaze.com/shows/' + showId)
-		.then((showResponseData) => {
-			var showJsonData = JSON.parse(showResponseData);
-			// Try to find the show in the DB
-			Show.findOne({ api_id: showId })
-				.then((showDatabaseData) => {
-					if (showDatabaseData != null) {
-						// The show was added previously so update it
-						Show.findByIdAndUpdate(showDatabaseData.id, {
-							name: showJsonData.name,
-							image_url: showJsonData.image.original,
-							api_id: showJsonData.id
-						}).then((show_doc) => {
-							RefreshAllEpisodesData(lastUpdatedDate, show_doc);
-						});
-					}
-					else {
-						// It's a new show so add it
-						var newShow = new Show({
-							name: showJsonData.name,
-							image_url: showJsonData.image.original,
-							api_id: showJsonData.id
-						});
-
-						newShow.save().then((show_doc) => {
-							RefreshAllEpisodesData(lastUpdatedDate, show_doc);
-						});
-					}
-				});
-		});
-}
-
-function RefreshAllEpisodesData(lastUpdatedDate, show_doc) {
-	request.get('http://api.tvmaze.com/shows/' + show_doc.api_id.toString() + '/episodes').then((episode_res) => {
-		var episode_json = JSON.parse(episode_res);
-		// Loop through each episode and store it
-		for (var j = 0; j < episode_json.length; j++) {
-			storeEpisodeData(lastUpdatedDate, episode_json[j], show_doc);
-		}
-	});
-}
-
-function storeEpisodeData(lastUpdatedDate, episodeData, show_doc) {
-	var episodeAirDate = moment(episodeData.airdate, "YYYY-MM-DD").valueOf();
-	// Only update or add it if the airdate occurs after the last time we updated show infos
-	if (episodeAirDate > lastUpdatedDate) {
-		var newEpisodeInfo = {
-			name: episodeData.name,
-			image_url: episodeData.image != null ? episodeData.image.original : null,
-			season: episodeData.season,
-			number: episodeData.number,
-			date: episodeAirDate,
-			date_formatted: moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY"),
-			premiered: (episodeAirDate < moment().valueOf()),
-			summary: episodeData.summary,
-			api_id: episodeData.id,
-			show: {
-				name: show_doc.name,
-				mongo_id: show_doc._id,
-				api_id: show_doc.api_id,
-				image_url: show_doc.image_url
-			}
-		};
-		Episode.findOneAndUpdate({ api_id: episodeData.id }, newEpisodeInfo)
-		.then((episode_doc) => {
-			// If no episode was updated then create a new one
-			if (episode_doc === null) {
-				var newEpisode = new Episode(newEpisodeInfo);
-				return newEpisode.save();
-			}
-		})
-		.then((episode_doc) => {
-			if (episode_doc !== null) {
-				// A new doc was saved
-			}
-		})
-		.catch((e) => {
-			console.error(e);
-		})
-	}
 }

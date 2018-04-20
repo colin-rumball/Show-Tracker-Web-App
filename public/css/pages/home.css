@@ -8,12 +8,30 @@ body {
 	font-family: 'Open Sans', sans-serif;
 }
 
+a {
+	color: #444;
+}
+
+.basic-nav {
+	height: 45px;
+}
+
+.site-logo {
+	float: left;
+	left: 1vw;
+	top: 2vh;
+	height: 38px;
+	margin-right: 5px;
+}
+
 .container {
 	margin-top: 6vh;
 }
 
 .dropdown {
-	display: inline;
+	display: inline-block;
+	float: right;
+	margin: 0 5px;
 }
 
 .add-show-container {
@@ -34,6 +52,10 @@ body {
 	float: right;
 }
 
+.remove-show-button {
+	float: right;
+}
+
 /* EPISODES STYLE */
 
 .episode {
@@ -51,6 +73,10 @@ body {
 	opacity: 0.67;
 }
 
+.removed {
+
+}
+
 .show-image-container {
 	position: relative;
 	display: block;
@@ -66,8 +92,9 @@ body {
 	height: auto;
 	max-height: 100%;
 	max-width: 100%;
+	top: 50%;
 	left: 50%;
-	transform: translateX(-50%);
+	transform: translate(-50%, -50%);
 }
 
 .episode-info {
@@ -101,8 +128,12 @@ body {
 }
 
 .summary {
-	font-size: 18px;
-	padding-top: 10px;
+	font-size: 16px;
+	padding: 10px 0;
+	overflow: scroll;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	height: calc(73% - 44px);
 }
 
 .episode-footer {
