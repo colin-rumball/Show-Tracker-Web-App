@@ -34,21 +34,21 @@ a {
 	margin: 0 5px;
 }
 
-.add-show-container {
+.nav-button {
 	float: right;
 }
 
-.list-torrent {
+.modal-list-item {
 	padding: 5px 0;
 	word-wrap: break-word;
 	border-bottom: 1px solid #444;
 }
 
-.list-torrent .torrent-info {
+.modal-list-item .modal-list-item-info {
 	min-height: 50px;
 }
 
-.list-torrent button {
+.modal-list-item button {
 	float: right;
 }
 

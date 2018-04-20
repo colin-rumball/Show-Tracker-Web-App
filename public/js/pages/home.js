@@ -4,6 +4,51 @@ function findAncestor(el, cls) {
 }
 
 $(function() {
+	// NAV BUTTONS
+	$('.dropdown-item').click(function () {
+		var id = this.dataset.show_id;
+		document.getElementById('episodes-container').innerHTML = '';
+
+		$.ajax({
+			type: "GET",
+			url: '/public/templates/episode.hbs',
+			success: function (episodeTemplate) {
+				$.ajax({
+					type: "GET",
+					url: '/show/' + id.toString() + '/episodes.json',
+					success: function (data) {
+						var episodeFunc = Handlebars.compile(episodeTemplate);
+						for (var i = 0; i < data.length; i++) {
+							document.getElementById('episodes-container').innerHTML += episodeFunc(data[i]);
+						}
+					}
+				});
+			}
+		});
+	});
+
+	$('#force-update-button').click(function() {
+		$.ajax({
+			type: "POST",
+			url: '/update',
+			success: function () {
+				location.href = '/';
+			}
+		});
+	});
+
+	$('#post-processing-button').click(function() {
+		$.ajax({
+			type: "POST",
+			url: '/post-processing',
+			success: function () {
+				location.href = '/';
+			}
+		});
+	});
+
+	// EPISODE STUFF ( DOWNLOAD / REMOVE )
+
 	$('#episodes-container').on('click', '.download-button', function () {
 		$('#new-show-results-container').html('Searching...');
 		var id = this.dataset.episode_id;
@@ -43,27 +88,7 @@ $(function() {
 		});
 	});
 
-	$('.dropdown-item').click(function () {
-		var id = this.dataset.show_id;
-		document.getElementById('episodes-container').innerHTML = '';
-
-		$.ajax({
-			type: "GET",
-			url: '/public/templates/episode.hbs',
-			success: function (episodeTemplate) {
-				$.ajax({
-					type: "GET",
-					url: '/show/' + id.toString() + '/episodes.json',
-					success: function (data) {
-						var episodeFunc = Handlebars.compile(episodeTemplate);
-						for (var i = 0; i < data.length; i++) {
-							document.getElementById('episodes-container').innerHTML += episodeFunc(data[i]);
-						}
-					}
-				});
-			}
-		});
-	});
+	// MODAL ACTIONS
 
 	$('#new-show-results-container').on('click', '.new-show-button', function () {
 		var id = this.dataset.show_id;
@@ -77,7 +102,7 @@ $(function() {
 		});
 	});
 
-	$('#new-show-results-container').on('click', '.torrent-selection-button', function () {
+	$('#torrent-search-results-container').on('click', '.torrent-selection-button', function () {
 		var link = {link: this.dataset.magnet};
 		var thisButton = this;
 		$.ajax({
@@ -85,10 +110,13 @@ $(function() {
 			type: 'POST',
 			data: link,
 			success: function() {
+				$(thisButton).toggleClass('btn-success');
 				alert('Added torrent to downloader');
 			}
 		});
 	});
+
+	// NEW SHOW QUERY / FORM
 
 	$('#add-show-form').submit(function (e) {
 		e.preventDefault();
@@ -101,22 +129,32 @@ $(function() {
 
 		$('#new-show-results-container').html('');
 
+		var showFunc;
+
+		$.ajax({
+			type: "GET",
+			url: '/public/templates/new-show.hbs',
+			success: function (returnedShowTemplate) {
+				showFunc = Handlebars.compile(returnedShowTemplate);
+			}
+		});
+
 		$.ajax({
 			url: url,
 			type: 'GET',
 			success: function (data) {
-				$.ajax({
-					type: "GET",
-					url: '/public/templates/new-show.hbs',
-					success: function (newShowTemplate) {
-						var showFunc = Handlebars.compile(newShowTemplate);
-						for (var i = 0; i < data.length; i++) {
-							var show = data[i].show;
+				for (var i = 0; i < data.length; i++) {
+					var show = data[i].show;
+					$.ajax({
+						type: "GET",
+						url: 'http://api.tvmaze.com/shows/'+show.id+'/seasons',
+						success: function (seasons) {
+							show.seasons = seasons;
 							$('#new-show-results-container').append(showFunc(show));
 						}
-					}
-				});
+					});
+				}
 			}
-		})
+		});
 	});
 });

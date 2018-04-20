@@ -132,6 +132,10 @@ app.post('/update', async (req, res) => {
 	res.sendStatus(200);
 });
 
+app.post('/post-processing', (req, res) => {
+	res.sendStatus(200);
+});
+
 app.post('/torrents', (req, res) => {
 	var magnetLink = req.body.link;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {

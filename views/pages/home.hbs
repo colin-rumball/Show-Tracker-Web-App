@@ -10,13 +10,13 @@
 	{{!-- MODALS --}}
 	{{> modals/newShowSearch }}
 	{{> modals/newShowResults }}
+	{{> modals/torrentSearchResults }}
 
-	
 	<div class="container">
 		<div class="basic-nav">
 			<a href="/"><img src="/public/images/logo.png" alt="Logo" class="site-logo"> <h3 style="display:inline-block"> Show Tracker</h3></a>
 			{{!-- ADD SHOW --}}
-			<div class="add-show-container">
+			<div class="nav-button">
 				<input class="btn btn-primary" id="add-show-button" type="button" value="Add New Show" data-toggle="modal" data-target="#search-modal">
 			</div>
 			{{!-- SHOWS DROP DOWN --}}
@@ -32,6 +32,14 @@
 						{{> show_dropdown}}
 					{{/each}}
 				</div>
+			</div>
+			{{!-- FORCE UPDATE --}}
+			<div class="nav-button">
+				<input class="btn btn-info" id="force-update-button" type="button" value="Force Update All">
+			</div>
+			{{!-- POST PROCESSING --}}
+			<div class="nav-button">
+				<input class="btn" id="post-processing-button" type="button" value="Force Post Processing">
 			</div>
 		</div>
 		
