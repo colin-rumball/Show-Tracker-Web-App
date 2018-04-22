@@ -10,22 +10,22 @@ const express = require('express'),
 	hbs = require('hbs'),
 	prettyBytes = require('pretty-bytes'),
 	rarbgApi = require('rarbg-api'),
-	utorrent = require('utorrent-api'),
 	transmission = require('transmission'),
 	favicon = require('serve-favicon');
 
-var {ObjectID} = require('mongodb');
 var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
+var {Download} = require('./models/Download');
 
-var transmissionClient = new transmission();
-
-var utorrentClient = new utorrent(process.env.BITTORRENT_IP, process.env.BITTORRENT_PORT);
-utorrentClient.setCredentials(process.env.BITTORRENT_USER, process.env.BITTORRENT_PASS);
+var transmissionClient = new transmission({
+	host: process.env.BITTORRENT_IP,
+	port: process.env.BITTORRENT_PORT,
+	username: process.env.BITTORRENT_USER,
+	password: process.env.BITTORRENT_PASS
+});
 
 const SERVER_PORT = process.env.PORT;
-const UPDATE_FREQUENCY = process.env.UPDATE_FREQUENCY;
 
 var app = express();
 
@@ -43,6 +43,8 @@ hbs.registerPartials(__dirname + '/../views/partials', () => {
 	});
 });
 
+// ROUTE | GET
+
 app.get('/', async (req, res) => {
 	TryUpdateAllInfo();
 	var shows = await Show.find({});
@@ -54,7 +56,7 @@ app.get('/', async (req, res) => {
 });
 
 async function TryUpdateAllInfo() {
-	var lastUpdate = 1;//mongoose.get('last-update');
+	var lastUpdate = mongoose.get('last-update');
 	// If it's been at least 24 hours since the last update
 	if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf()) {
 		mongoose.set('last-update', moment().valueOf());
@@ -118,11 +120,15 @@ app.get('/public/templates/:template', (req, res) => {
 });
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
+// ROUTE | POST
+
 app.post('/show/:id', async (req, res) => {
 	var api_id = req.params.id;
-	var fromBeginning = req.body.fromBeginning;
-	var newShow = await Show.AddShow(api_id, fromBeginning);
-	await Episode.AddAllEpisodes(newShow);
+	var season = Number.parseInt(req.body.season);
+	var newShow = await Show.AddShow(api_id);
+	if (newShow != null) {
+		await Episode.AddAllEpisodes(newShow, season);
+	}
 	res.send({name: newShow.name});
 });
 
@@ -132,27 +138,56 @@ app.post('/update', async (req, res) => {
 	res.sendStatus(200);
 });
 
-app.post('/post-processing', (req, res) => {
+app.post('/post-processing', async (req, res) => {
+	var downloads = await Download.find({});
+	downloads.forEach(async download => {
+		try {
+			var response = await request.post('http://192.168.1.2:2987/move-file', { 
+				json: { 
+					fileName: download.fileName, 
+					type: download.type,
+					showName: download.showName
+				}
+			});
+			if (response != null) {
+				download.remove();
+			}
+		} catch(err) {
+
+		}
+		
+	});
 	res.sendStatus(200);
 });
 
-app.post('/torrents', (req, res) => {
+app.post('/torrents', async (req, res) => {
 	var magnetLink = req.body.link;
+	var id = req.body.episode_id;
+	var showName = (await Episode.findById(id)).show.name;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {
-		console.log(err, arg);
+		if (err) {
+			console.log(err, arg);
+			return res.sendStatus(500);
+		}
+
+		var newDownload = new Download({
+			fileName: arg.name,
+			type: 'tvshow',
+			showName: showName
+		});
+		newDownload.save();
+		res.sendStatus(200);
 	});
-	// utorrentClient.call('add-url', {s: magnetLink}, (err) => {
-	// 	if (err) {
-	// 		return res.sendStatus(500);
-	// 	}
-	// 	res.sendStatus(200);
-	// });
 });
+
+// ROUTE | DELETE
 
 app.delete('/show/:id', async (req, res) => {
 	var mongo_id = req.params.id;
 	var show = await Show.PermanentlyRemoveShow(mongo_id);
-	await Episode.PermanentlyRemoveEpisodes({ 'show.api_id': show.api_id });
+	if (show != null) {
+		await Episode.PermanentlyRemoveEpisodes({ 'show.api_id': show.api_id });
+	}
 	res.sendStatus(200);
 });
 
@@ -167,10 +202,18 @@ async function getTorrents(query) {
 	var torrents = null;
 	while (requestsMade < 5 && torrents == null) {
 		requestsMade++;
-		torrents = await rarbgApi.search(query, {
-			category: rarbgApi.CATEGORY.TV_HD_EPISODES,
-			sort: 'seeders'
-		});
+		try {
+			torrents = await rarbgApi.search(query, {
+				/*category: rarbgApi.CATEGORY.TV_HD_EPISODES,*/
+				sort: 'seeders'
+			});
+		} catch(err) {
+			if (err.error_code == 20) {
+				// No results found
+				return [];
+			}
+			console.log(err);
+		}
 	}
 	return torrents;
 }

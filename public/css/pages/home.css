@@ -31,11 +31,25 @@ a {
 .dropdown {
 	display: inline-block;
 	float: right;
-	margin: 0 5px;
+	margin: 0 3px;
 }
 
 .nav-button {
 	float: right;
+	padding: 0 3px;
+}
+
+.modal {
+	max-height: 80vh;
+}
+
+.modal-dialog {
+	overflow-y: auto;
+	height: 100%;
+}
+
+.modal-content {
+	padding-bottom: 20px;
 }
 
 .modal-list-item {
@@ -54,6 +68,10 @@ a {
 
 .remove-show-button {
 	float: right;
+}
+
+.disabled {
+	pointer-events: none;
 }
 
 /* EPISODES STYLE */

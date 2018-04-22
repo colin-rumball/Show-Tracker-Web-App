@@ -2,19 +2,25 @@
 	<h5>{{name}}</h5>
 	<div class="modal-list-item-info">
 		<span>Premiered: {{premiered}}</span>
+		{{!-- ADD BUTTON --}}
+		<button type="button" class="btn btn-info new-show-button disabled" data-show_id="{{id}}" data-dismiss="modal">Add</button>
+		{{!-- SEASON SELECTION --}}
         <div class="dropdown">
-				<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+				<button class="btn btn-secondary dropdown-toggle season-selection-button" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
 				aria-expanded="false">
 					Seasons
 				</button>
 				<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-					<button class="dropdown-item" data-show_id="0">All</button>
+					<button class="dropdown-item season-dropdown-item" data-season_id="0">All</button>
 					<div class="dropdown-divider"></div>
 					{{#each seasons}}
 						{{> season_dropdown}}
 					{{/each}}
 				</div>
 			</div>
-		<button type="button" class="btn btn-info new-show-button" data-magnet="{{id}}" data-dismiss="modal">Add</button>
 	</div>
 </div>
+
+{{#* inline "season_dropdown"}}
+	<button class="dropdown-item season-dropdown-item" data-season_id="{{number}}">Season {{number}}</button>
+{{/inline}}

@@ -13,7 +13,7 @@
 			<span class="season-number">Season {{season}}, Episode {{number}}</span>
 			 {{#if premiered}}
 				{{#unless removed}}<input class="btn btn-warning remove-button" type="button" value="Remove" data-episode_id="{{_id}}">{{/unless}}
-				<input class="btn btn-success download-button" type="button" data-toggle="modal" data-target="#results-modal" value="Download" data-episode_id="{{_id}}">
+				<input class="btn btn-success download-button" type="button" data-toggle="modal" data-target="#torrent-results-modal" value="Download" data-episode_id="{{_id}}">
 			{{/if}}
 		</div>
 	</div>

@@ -15,10 +15,7 @@ var episodeSchema = new mongoose.Schema({
 	premiered: Boolean,
 	summary: String,
 	api_id: Number,
-	removed: {
-		type: Boolean,
-		default: false
-	},
+	removed: Boolean,
 	show: {
 		name: String,
 		mongo_id: String,
@@ -44,17 +41,18 @@ function episodeSorter(a, b) {
 	return a.date - b.date;
 }
 
-episodeSchema.statics.AddAllEpisodes = async function (show_doc) {
+episodeSchema.statics.AddAllEpisodes = async function (show_doc, season) {
 	var episodes_res = await request.get('http://api.tvmaze.com/shows/' + show_doc.api_id.toString() + '/episodes');
 	var episodes_json = JSON.parse(episodes_res);
 	// Loop through each episode and store it
-	for (var j = 0; j < episodes_json.length; j++) {
-		await this.AddEpisode(episodes_json[j], show_doc);
+	for (var i = 0; i < episodes_json.length; i++) {
+		var removed = (season != 0 && episodes_json[i].season < season);
+		await this.AddEpisode(episodes_json[i], show_doc, removed);
 	}
 }
 
-episodeSchema.statics.AddEpisode = async function (episodeData, show_doc) {
-	var newEpisodeInfo = getEpisodeObject(episodeData, show_doc);
+episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, removed) {
+	var newEpisodeInfo = getEpisodeObject(episodeData, show_doc, removed);
 	var episode = await Episode.find({api_id: episodeData.id})
 	if (_.isEmpty(episode)) {
 		var newEpisode = new Episode(newEpisodeInfo);
@@ -69,7 +67,7 @@ episodeSchema.statics.UpdateAllEpisodes = async function() {
 		var showResponseData = await request.get('http://api.tvmaze.com/shows/' + episode.show.api_id);
 		var episodes_json = JSON.parse(episodes_res);
 		var showJsonData = JSON.parse(showResponseData);
-		var newEpisodeInfo = getEpisodeObject(episodes_json);
+		var newEpisodeInfo = getEpisodeObject(episodes_json, null, episode.removed);
 		newEpisodeInfo['show'] = {
 			name: episode.show.name,
 			mongo_id: episode.show.mongo_id,
@@ -80,12 +78,13 @@ episodeSchema.statics.UpdateAllEpisodes = async function() {
 	});
 }
 
-function getEpisodeObject(episodeData, show_doc) {
+function getEpisodeObject(episodeData, show_doc, removed) {
 	var episodeObject = {
 		name: episodeData.name,
 		image_url: episodeData.image != null ? episodeData.image.original : null,
 		season: episodeData.season,
 		number: episodeData.number,
+		removed: removed,
 		date: moment(episodeData.airdate, "YYYY-MM-DD").valueOf(),
 		date_formatted: moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY"),
 		premiered: (moment(episodeData.airdate, "YYYY-MM-DD").valueOf() < moment().valueOf()),
