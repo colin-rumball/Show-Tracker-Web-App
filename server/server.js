@@ -170,10 +170,13 @@ app.post('/torrents', async (req, res) => {
 			return res.sendStatus(500);
 		}
 
+		// TODO: get torrent id using the arg variable
+		var torrentId = arg.id;
 		var newDownload = new Download({
 			fileName: arg.name,
 			type: 'tvshow',
-			showName: showName
+			showName: showName,
+			torrent_id: torrentId
 		});
 		newDownload.save();
 		res.sendStatus(200);
