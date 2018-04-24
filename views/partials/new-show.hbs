@@ -22,5 +22,5 @@
 </div>
 
 {{#* inline "season_dropdown"}}
-	<button class="dropdown-item season-dropdown-item" data-season_id="{{number}}">Season {{number}}</button>
+	{{#if premiereDate}}<button class="dropdown-item season-dropdown-item" data-season_id="{{number}}">Season {{number}}</button>{{/if}}
 {{/inline}}
