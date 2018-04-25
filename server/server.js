@@ -49,6 +49,9 @@ app.get('/', async (req, res) => {
 	TryUpdateAllInfo();
 	var shows = await Show.find({});
 	var episodes = await Episode.GetSortedEpisodes({});
+	episodes.forEach((episode) => {
+		episode.show['image_url'] = shows.find(show => show.api_id == episode.show.api_id).image_url;
+	})
 	res.render('pages/home', {
 		episodes,
 		shows
@@ -59,17 +62,19 @@ async function TryUpdateAllInfo() {
 	var lastUpdate = mongoose.get('last-update');
 	// If it's been at least 24 hours since the last update
 	if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf()) {
+		await Show.update({}, {update_needed: true}, {multi: true});
+		await Episode.update({ date: { $gt: lastUpdate}}, { update_needed: true }, { multi: true });
 		mongoose.set('last-update', moment().valueOf());
-		await Show.UpdateAllShows();
-		await Episode.UpdateAllEpisodes();
 	}
+	await Show.UpdateShows();
+	await Episode.UpdateEpisodes(lastUpdate);
 }
 
 app.get('/show/:showName', async (req, res) => {
 	var showName = req.params.showName;
 	var show = await Show.findOne({name: showName});
 	if (show != null) {
-		var episodes = await Episode.GetSortedEpisodes({'show.api_id': show.api_id}, true);
+		var episodes = await Episode.GetSortedEpisodes({ 'show.api_id': show.api_id }, true);
 		episodes.forEach(episode => {
 			episode.alternativeStyle = true;
 		});
@@ -87,7 +92,8 @@ app.get('/show/:id/episodes.json', async (req, res) => {
 	var id = req.params.id;
 	var query = id == 0 ? {} : { "show.mongo_id": id };
 	var episodes = await Episode.GetSortedEpisodes(query);
-	res.send(episodes);
+	var shows = id == 0 ? await Show.find({}) : [await Show.findById(id)];
+	res.send({episodes, shows});
 });
 
 app.get('/episode/torrents/:id', async (req, res) => {
@@ -133,29 +139,57 @@ app.post('/show/:id', async (req, res) => {
 });
 
 app.post('/update', async (req, res) => {
-	await Show.UpdateAllShows();
-	await Episode.UpdateAllEpisodes();
+	await Show.update({}, { update_needed: true }, { multi: true });
+	var lastUpdate = mongoose.get('last-update') || moment().valueOf();
+	await Episode.update({ date: { $gt: lastUpdate } }, { update_needed: true }, { multi: true });
+	await Show.UpdateShows();
+	await Episode.UpdateEpisodes(lastUpdate);
+	mongoose.set('last-update', moment().valueOf());
 	res.sendStatus(200);
 });
 
 app.post('/post-processing', async (req, res) => {
-	var downloads = await Download.find({});
-	downloads.forEach(async download => {
-		try {
-			var response = await request.post('http://192.168.1.2:2987/move-file', { 
-				json: { 
-					fileName: download.fileName, 
-					type: download.type,
-					showName: download.showName
+	transmissionClient.get(async function (err, arg) {
+		if (err) {
+			return console.error (err);
+		}
+
+		await Promise.all(arg.torrents.map(async (torrent) => {
+			if (torrent.status != transmissionClient.status.SEED &&
+				torrent.status != transmissionClient.status.SEED_WAIT)
+			{
+				return;
+			}
+
+			transmissionClient.remove([torrent.id], async function (err) {
+				if (err) {
+ 
+				}
+				var largestFile = {length: 1};
+				torrent.files.forEach(file => {
+					largestFile = file.length > largestFile.length ? file : largestFile;
+				});
+
+				var download = await Download.findOne({torrent_id: torrent.id});
+				if (download) {
+					try {
+						var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
+						var response = await request.post('http://192.168.1.2:2987/move-file', {
+							json: {
+								file: largestFile.name,
+								destination: destination,
+								type: download.type
+							}
+						});
+						if (response != null) {
+							download.remove();
+						}
+					} catch (err) {
+
+					}
 				}
 			});
-			if (response != null) {
-				download.remove();
-			}
-		} catch(err) {
-
-		}
-		
+		}));
 	});
 	res.sendStatus(200);
 });
@@ -163,18 +197,19 @@ app.post('/post-processing', async (req, res) => {
 app.post('/torrents', async (req, res) => {
 	var magnetLink = req.body.link;
 	var id = req.body.episode_id;
-	var showName = (await Episode.findById(id)).show.name;
+	var episode = await Episode.findById(id);
+	var showName = episode.show.name;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {
 		if (err) {
 			console.log(err, arg);
 			return res.sendStatus(500);
 		}
 
-		// TODO: get torrent id using the arg variable
 		var torrentId = arg.id;
 		var newDownload = new Download({
-			fileName: arg.name,
 			type: 'tvshow',
+			season: episode.season,
+			episode: episode.number,
 			showName: showName,
 			torrent_id: torrentId
 		});

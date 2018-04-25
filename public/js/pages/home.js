@@ -17,15 +17,19 @@ $(function() {
 			type: "GET",
 			url: '/public/templates/episode.hbs',
 			success: function (episodeTemplate) {
-				$.ajax({
-					type: "GET",
-					url: '/show/' + id.toString() + '/episodes.json',
-					success: function (data) {
-						var episodeFunc = Handlebars.compile(episodeTemplate);
-						for (var i = 0; i < data.length; i++) {
-							document.getElementById('episodes-container').innerHTML += episodeFunc(data[i]);
-						}
+				fetch('/show/' + id.toString() + '/episodes.json').then(function (response){
+					if (response.ok) {
+						response.json().then(function (data) {
+							var episodes = data.episodes;
+							var shows = data.shows;
+							var episodeFunc = Handlebars.compile(episodeTemplate);
+							for (var i = 0; i < episodes.length; i++) {
+								episodes[i].show.image_url = shows.find(show => show.api_id === episodes[i].show.api_id).image_url;
+								document.getElementById('episodes-container').innerHTML += episodeFunc(episodes[i]);
+							}
+						});
 					}
+					
 				});
 			}
 		});

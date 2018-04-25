@@ -8,7 +8,8 @@ var { Episode } = require('./../models/Episode');
 var showSchema = new mongoose.Schema({
 	name: String,
 	image_url: String,
-	api_id: Number
+	api_id: Number,
+	update_needed: Boolean
 });
 
 showSchema.statics.AddShow = async function (api_id) {
@@ -31,19 +32,41 @@ showSchema.statics.PermanentlyRemoveShow = async function (mongo_id) {
 	return show;
 }
 
-showSchema.statics.UpdateAllShows = async function () {
-	var shows = await Show.find({});
+showSchema.statics.UpdateShows = async function () {
+	var shows = await Show.find({update_needed: true});
 	// Loop through each show
-	shows.forEach(async show => {
+	await Promise.all(shows.map(async (show) => {
 		// get api info
-		var showResponseData = await request.get('http://api.tvmaze.com/shows/' + show.api_id);
-		var showJsonData = JSON.parse(showResponseData);
-		await show.update({
-			name: showJsonData.name,
-			image_url: showJsonData.image.original,
-			api_id: showJsonData.id
-		});
-	});
+		var showResponseData = await getShowData(show.api_id, 1);
+		if (showResponseData != undefined) {
+			var showJsonData = JSON.parse(showResponseData);
+			await show.update({
+				name: showJsonData.name,
+				image_url: showJsonData.image.original,
+				api_id: showJsonData.id,
+				update_needed: false
+			});
+		}
+		else {
+			console.log(`Failed to update data for ${show.name}`);
+		}
+	}));
+}
+
+async function getShowData(api_id, requestAttempt) {
+	try {
+		return await request.get('http://api.tvmaze.com/shows/' + api_id);
+	} catch(err) {
+		if (err.statusCode == 429 && requestAttempt <= process.env.MAX_REPEATED_REQUEST_ATTEMPTS) {
+			return new Promise((resolve, reject) => {
+				setTimeout(async () => {
+					resolve(await getShowData(api_id, requestAttempt + 1));
+				}, 500);
+			});
+		} else {
+			return null;
+		}
+	}
 }
 
 var Show = mongoose.model('Show', showSchema);

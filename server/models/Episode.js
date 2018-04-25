@@ -19,9 +19,9 @@ var episodeSchema = new mongoose.Schema({
 	show: {
 		name: String,
 		mongo_id: String,
-		api_id: Number,
-		image_url: String
-	}
+		api_id: Number
+	},
+	update_needed: Boolean
 });
 
 episodeSchema.statics.GetSortedEpisodes = async function (query, includeRemoved = false) {
@@ -52,7 +52,7 @@ episodeSchema.statics.AddAllEpisodes = async function (show_doc, season) {
 }
 
 episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, removed) {
-	var newEpisodeInfo = getEpisodeObject(episodeData, show_doc, removed);
+	var newEpisodeInfo = createEpisodeObject(episodeData, show_doc, removed);
 	var episode = await Episode.find({api_id: episodeData.id})
 	if (_.isEmpty(episode)) {
 		var newEpisode = new Episode(newEpisodeInfo);
@@ -60,25 +60,40 @@ episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, remove
 	}
 }
 
-episodeSchema.statics.UpdateAllEpisodes = async function() {
-	var episodes = await Episode.find({});
-	episodes.forEach(async episode => {
-		var episodes_res = await request.get('http://api.tvmaze.com/episodes/' + episode.api_id.toString());
-		var showResponseData = await request.get('http://api.tvmaze.com/shows/' + episode.show.api_id);
-		var episodes_json = JSON.parse(episodes_res);
-		var showJsonData = JSON.parse(showResponseData);
-		var newEpisodeInfo = getEpisodeObject(episodes_json, null, episode.removed);
-		newEpisodeInfo['show'] = {
-			name: episode.show.name,
-			mongo_id: episode.show.mongo_id,
-			api_id: episode.show.api_id,
-			image_url: showJsonData.image.original
+episodeSchema.statics.UpdateEpisodes = async function (lastUpdate) {
+	var episodes = await Episode.find({update_needed: true});
+	// Loop through each episode
+	await Promise.all(episodes.map(async (episode) => {
+		var episodes_res = await getEpisodeData(episode.api_id, 1);
+		if (episodes_res != undefined) {
+			var episodes_json = JSON.parse(episodes_res);
+			var newEpisodeInfo = createEpisodeObject(episodes_json, null, episode.removed);
+			newEpisodeInfo.update_needed = false;
+			await episode.update(newEpisodeInfo);
 		}
-		await episode.update(newEpisodeInfo);
-	});
+		else {
+			console.log(`Failed to update data for ${episode.name} of show ${episode.show.name}`);
+		}
+	}));
 }
 
-function getEpisodeObject(episodeData, show_doc, removed) {
+async function getEpisodeData(api_id, requestAttempt) {
+	try {
+		return await request.get('http://api.tvmaze.com/episodes/' + api_id);
+	} catch (err) {
+		if (err.statusCode == 429 && requestAttempt <= process.env.MAX_REPEATED_REQUEST_ATTEMPTS) {
+			return new Promise((resolve, reject) => { 
+					setTimeout(async () => { 
+					resolve(await getEpisodeData(api_id, requestAttempt + 1));
+				}, 500);
+			});
+		} else {
+			return null;
+		}
+	}
+}
+
+function createEpisodeObject(episodeData, show_doc, removed) {
 	var episodeObject = {
 		name: episodeData.name,
 		image_url: episodeData.image != null ? episodeData.image.original : null,
@@ -95,8 +110,7 @@ function getEpisodeObject(episodeData, show_doc, removed) {
 		episodeObject['show'] = {
 			name: show_doc.name,
 			mongo_id: show_doc._id,
-			api_id: show_doc.api_id,
-			image_url: show_doc.image_url
+			api_id: show_doc.api_id
 		}
 	}
 	return episodeObject;

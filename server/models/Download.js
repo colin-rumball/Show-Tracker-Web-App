@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 var downloadSchema = new mongoose.Schema({
-	fileName: String,
 	type: String,
+	season: Number,
+	episode: Number,
 	showName: String,
 	torrent_id: Number
 });
