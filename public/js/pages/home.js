@@ -36,25 +36,29 @@ $(function() {
 	});
 
 	$('#force-update-button').click(function() {
+		OnNewRequest('Updating Database Info', 'Updating all shows and episodes with new info...');
 		$.ajax({
 			type: "POST",
 			url: '/update',
 			success: function () {
-				location.href = '/';
-				alert('Update complete');
+				OnRequestSuccessful('All info updated successfully!');
 			},
 			error: function() {
-				alert('Update failed');
+				OnRequestFailure('An error occurred while updating databse info.');
 			}
 		});
 	});
 
 	$('#post-processing-button').click(function() {
+		OnNewRequest('Processing New Files', 'Attempting to move completed downloads to Plex...');
 		$.ajax({
 			type: "POST",
 			url: '/post-processing',
 			success: function () {
-				location.href = '/';
+				OnRequestSuccessful('All files moved successfully!');
+			},
+			error: function (err) {
+				OnRequestFailure('An error occurred while processing new files. Error: ' + err.responseText);
 			}
 		});
 	});
@@ -132,17 +136,18 @@ $(function() {
 	});
 	// Torrent Selection
 	$('#torrent-results-container').on('click', '.torrent-selection-button', function () {
+		OnNewRequest('Adding New Torrent', 'Attempting to add new torrent to download queue...');
 		var id = $('#torrent-results-modal').data('episode_id');
 		var data = { link: this.dataset.magnet, episode_id: id};
 		$.ajax({
 			url: '/torrents',
 			type: 'POST',
 			data: data,
-			success: function() {
-				alert('Torrent added!');
+			success: function () {
+				OnRequestSuccessful('Torrent added successfully!');
 			},
-			error: function() {
-				alert('Error adding torrent to downloader');
+			error: function (err) {
+				OnRequestFailure('An error occurred while adding the new torrent. Error: ' + err.responseText);
 			}
 		});
 	});

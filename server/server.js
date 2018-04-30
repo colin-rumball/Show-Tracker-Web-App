@@ -51,7 +51,7 @@ app.get('/', async (req, res) => {
 	var episodes = await Episode.GetSortedEpisodes({});
 	episodes.forEach((episode) => {
 		episode.show['image_url'] = shows.find(show => show.api_id == episode.show.api_id).image_url;
-	})
+	});
 	res.render('pages/home', {
 		episodes,
 		shows
@@ -139,39 +139,48 @@ app.post('/show/:id', async (req, res) => {
 });
 
 app.post('/update', async (req, res) => {
-	await Show.update({}, { update_needed: true }, { multi: true });
-	var lastUpdate = mongoose.get('last-update') || moment().valueOf();
-	await Episode.update({ date: { $gt: lastUpdate } }, { update_needed: true }, { multi: true });
-	await Show.UpdateShows();
-	await Episode.UpdateEpisodes(lastUpdate);
-	mongoose.set('last-update', moment().valueOf());
-	res.sendStatus(200);
+	try {
+		await Show.update({}, { update_needed: true }, { multi: true });
+		var lastUpdate = mongoose.get('last-update') || moment().valueOf();
+		await Episode.update({ date: { $gt: lastUpdate } }, { update_needed: true }, { multi: true });
+		await Show.UpdateShows();
+		await Episode.UpdateEpisodes(lastUpdate);
+		mongoose.set('last-update', moment().valueOf());
+		res.sendStatus(200);
+	} catch(err)
+	{
+		res.sendStatus(500);
+	}
 });
 
 app.post('/post-processing', async (req, res) => {
 	transmissionClient.get(async function (err, arg) {
 		if (err) {
-			return console.error (err);
+			return res.status(500).send(err);
 		}
 
+		var noTorrentsToMove = true;
 		await Promise.all(arg.torrents.map(async (torrent) => {
 			if (torrent.status != transmissionClient.status.SEED &&
 				torrent.status != transmissionClient.status.SEED_WAIT)
 			{
 				return;
 			}
+			noTorrentsToMove = false;
 
-			transmissionClient.remove([torrent.id], async function (err) {
-				if (err) {
- 
-				}
-				var largestFile = {length: 1};
-				torrent.files.forEach(file => {
-					largestFile = file.length > largestFile.length ? file : largestFile;
-				});
+			var download = await Download.findOne({ magnet_link: torrent.magnetLink });
 
-				var download = await Download.findOne({torrent_id: torrent.id});
-				if (download) {
+			if (download) {
+				transmissionClient.remove([torrent.id], async function (err) {
+					if (err) {
+						return res.status(500).send(err);
+					}
+
+					var largestFile = {length: 1};
+					torrent.files.forEach(file => {
+						largestFile = file.length > largestFile.length ? file : largestFile;
+					});
+
 					try {
 						var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
 						var response = await request.post('http://192.168.1.2:2987/move-file', {
@@ -183,15 +192,21 @@ app.post('/post-processing', async (req, res) => {
 						});
 						if (response != null) {
 							download.remove();
+							res.sendStatus(200);
 						}
 					} catch (err) {
-
+						return res.status(500).send(err);
 					}
-				}
-			});
+				});
+			} else {
+				res.status(500).send(`Download for ${torrent.name} not found. Attempt manual post processing and torrent removal.`);
+			}
 		}));
+
+		if (noTorrentsToMove) {
+			res.sendStatus(200);
+		}
 	});
-	res.sendStatus(200);
 });
 
 app.post('/torrents', async (req, res) => {
@@ -201,17 +216,15 @@ app.post('/torrents', async (req, res) => {
 	var showName = episode.show.name;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {
 		if (err) {
-			console.log(err, arg);
-			return res.sendStatus(500);
+			return res.status(500).send(err);
 		}
 
-		var torrentId = arg.id;
 		var newDownload = new Download({
 			type: 'tvshow',
 			season: episode.season,
 			episode: episode.number,
 			showName: showName,
-			torrent_id: torrentId
+			magnet_link: magnetLink
 		});
 		newDownload.save();
 		res.sendStatus(200);
@@ -249,8 +262,10 @@ async function getTorrents(query) {
 			if (err.error_code == 20) {
 				// No results found
 				return [];
+			} else
+			{
+				console.log(err);
 			}
-			console.log(err);
 		}
 	}
 	return torrents;

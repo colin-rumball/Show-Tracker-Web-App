@@ -5,7 +5,7 @@ var downloadSchema = new mongoose.Schema({
 	season: Number,
 	episode: Number,
 	showName: String,
-	torrent_id: Number
+	magnet_link: String
 });
 
 var Download = mongoose.model('Download', downloadSchema);
