@@ -159,14 +159,13 @@ app.post('/post-processing', async (req, res) => {
 			return res.status(500).send(err);
 		}
 
-		var noTorrentsToMove = true;
+		var filesMoved = [];
 		await Promise.all(arg.torrents.map(async (torrent) => {
 			if (torrent.status != transmissionClient.status.SEED &&
 				torrent.status != transmissionClient.status.SEED_WAIT)
 			{
 				return;
 			}
-			noTorrentsToMove = false;
 
 			var download = await Download.findOne({ magnet_link: torrent.magnetLink });
 
@@ -183,7 +182,7 @@ app.post('/post-processing', async (req, res) => {
 
 					try {
 						var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
-						var response = await request.post('http://192.168.1.2:2987/move-file', {
+						var response = await request.post(process.env.POST_PROCESSING_URL, {
 							json: {
 								file: largestFile.name,
 								destination: destination,
@@ -191,8 +190,10 @@ app.post('/post-processing', async (req, res) => {
 							}
 						});
 						if (response != null) {
+							var season = `s${("0" + download.season).slice(-2)}`;
+							var episode = `e${("0" + download.episode).slice(-2)}`;
+							filesMoved.push(`${download.showName} ${season}${episode}`);
 							download.remove();
-							res.sendStatus(200);
 						}
 					} catch (err) {
 						return res.status(500).send(err);
@@ -203,9 +204,9 @@ app.post('/post-processing', async (req, res) => {
 			}
 		}));
 
-		if (noTorrentsToMove) {
-			res.sendStatus(200);
-		}
+		// Only on success
+		res.setHeader('Content-Type', 'application/json');
+		res.sendStatus(200).send(JSON.stringify(filesMoved));
 	});
 });
 

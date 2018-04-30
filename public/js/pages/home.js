@@ -54,8 +54,20 @@ $(function() {
 		$.ajax({
 			type: "POST",
 			url: '/post-processing',
-			success: function () {
-				OnRequestSuccessful('All files moved successfully!');
+			success: function (data) {
+				var message;
+				var arr = JSON.parse(data);
+				if (arr != null && arr.length > 0) {
+					message = 'Files moved successfully: <ul>';
+					for (var i = 0; i < arr.length; i++)
+					{
+						message += `<li>${arr[i]}</li>`;
+					}
+					message += '</ul>';
+				} else {
+					message = 'No files were available to move.'
+				}
+				OnRequestSuccessful(message);
 			},
 			error: function (err) {
 				OnRequestFailure('An error occurred while processing new files. Error: ' + err.responseText);
