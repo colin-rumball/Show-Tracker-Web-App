@@ -2,7 +2,6 @@
     "test": {
         "PORT": 3000,
         "MONGODB_URI": "mongodb://192.168.1.9:27017/ShowTrackerAppTest",
-		"LOCAL_SITE_URL": "http://localhost:3000",
 		"UPDATE_FREQUENCY": 86400000,
 		"MAX_REPEATED_REQUEST_ATTEMPTS": 5,
 		"POST_PROCESSING_URL" : "http://192.168.1.2:2987/move-file",
@@ -14,7 +13,6 @@
     "development": {
         "PORT": 3000,
         "MONGODB_URI": "mongodb://192.168.1.9:27017/ShowTrackerApp",
-		"LOCAL_SITE_URL": "http://localhost:3000",
 		"UPDATE_FREQUENCY": 86400000,
 		"MAX_REPEATED_REQUEST_ATTEMPTS": 5,
 		"POST_PROCESSING_URL" : "http://192.168.1.2:2987/move-file",
