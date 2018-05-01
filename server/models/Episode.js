@@ -60,7 +60,7 @@ episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, remove
 	}
 }
 
-episodeSchema.statics.UpdateEpisodes = async function (lastUpdate) {
+episodeSchema.statics.UpdateEpisodes = async function () {
 	var episodes = await Episode.find({update_needed: true});
 	// Loop through each episode
 	await Promise.all(episodes.map(async (episode) => {
@@ -72,6 +72,7 @@ episodeSchema.statics.UpdateEpisodes = async function (lastUpdate) {
 			await episode.update(newEpisodeInfo);
 		}
 		else {
+			// Do something more here
 			console.log(`Failed to update data for ${episode.name} of show ${episode.show.name}`);
 		}
 	}));
@@ -102,7 +103,8 @@ function createEpisodeObject(episodeData, show_doc, removed) {
 		removed: removed,
 		date: moment(episodeData.airdate, "YYYY-MM-DD").valueOf(),
 		date_formatted: moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY"),
-		premiered: (moment(episodeData.airdate, "YYYY-MM-DD").valueOf() < moment().valueOf()),
+		/* Only set premiered if it's been 24 hours since the date the episode aired to allow updated info to be available */
+		premiered: (moment(episodeData.airdate, "YYYY-MM-DD").valueOf() < moment().valueOf() - 86400000),
 		summary: episodeData.summary,
 		api_id: episodeData.id
 	};

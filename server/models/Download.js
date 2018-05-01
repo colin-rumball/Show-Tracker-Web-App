@@ -5,7 +5,7 @@ var downloadSchema = new mongoose.Schema({
 	season: Number,
 	episode: Number,
 	showName: String,
-	magnet_link: String
+	hash_string: String
 });
 
 var Download = mongoose.model('Download', downloadSchema);

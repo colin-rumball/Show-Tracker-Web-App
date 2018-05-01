@@ -54,9 +54,8 @@ $(function() {
 		$.ajax({
 			type: "POST",
 			url: '/post-processing',
-			success: function (data) {
+			success: function (arr) {
 				var message;
-				var arr = JSON.parse(data);
 				if (arr != null && arr.length > 0) {
 					message = 'Files moved successfully: <ul>';
 					for (var i = 0; i < arr.length; i++)
