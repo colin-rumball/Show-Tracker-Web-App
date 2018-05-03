@@ -86,7 +86,7 @@ async function getEpisodeData(api_id, requestAttempt) {
 			return new Promise((resolve, reject) => { 
 					setTimeout(async () => { 
 					resolve(await getEpisodeData(api_id, requestAttempt + 1));
-				}, 500);
+				}, Math.floor((Math.random() * 1000) + 400));
 			});
 		} else {
 			return null;
@@ -95,16 +95,22 @@ async function getEpisodeData(api_id, requestAttempt) {
 }
 
 function createEpisodeObject(episodeData, show_doc, removed) {
+	var airtimeInMillis = moment(episodeData.airdate + ' ' + episodeData.airtime, "YYYY-MM-DD HH:mm").valueOf();
+	var runtimeInMillis = (episodeData.runtime * 60000);
+
+	var date_formatted = '<p>' +
+		moment(episodeData.airtime, "HH:mm").format("h:mm A") + '</p><p>' +
+		moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY") + '</p>';
+
 	var episodeObject = {
 		name: episodeData.name,
 		image_url: episodeData.image != null ? episodeData.image.original : null,
 		season: episodeData.season,
 		number: episodeData.number,
 		removed: removed,
-		date: moment(episodeData.airdate, "YYYY-MM-DD").valueOf(),
-		date_formatted: moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY"),
-		/* Only set premiered if it's been 24 hours since the date the episode aired to allow updated info to be available */
-		premiered: (moment(episodeData.airdate, "YYYY-MM-DD").valueOf() < moment().valueOf() - 86400000),
+		date: airtimeInMillis,
+		date_formatted: date_formatted,
+		premiered: (airtimeInMillis + runtimeInMillis < moment().valueOf()),
 		summary: episodeData.summary,
 		api_id: episodeData.id
 	};
