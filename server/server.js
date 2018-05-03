@@ -141,7 +141,7 @@ app.post('/show/:id', async (req, res) => {
 app.post('/update', async (req, res) => {
 	try {
 		await Show.update({}, { update_needed: true }, { multi: true });
-		await Episode.update({ premiered: false }, { update_needed: true }, { multi: true });
+		await Episode.update({ removed: false }, { update_needed: true }, { multi: true });
 		await Show.UpdateShows();
 		await Episode.UpdateEpisodes();
 		mongoose.set('last-update', moment().valueOf());
@@ -211,6 +211,7 @@ app.post('/post-processing', async (req, res) => {
 app.post('/torrents', async (req, res) => {
 	var magnetLink = req.body.link;
 	var id = req.body.episode_id;
+	Episode.RemoveEpisode(id);
 	var episode = await Episode.findById(id);
 	var showName = episode.show.name;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {

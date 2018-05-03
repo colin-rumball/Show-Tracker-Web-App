@@ -78,8 +78,8 @@ $(function() {
 
 	$('#episodes-container').on('click', '.download-button', function () {
 		$('#torrent-results-container').html('Searching...');
+		var episodeContainer = findAncestor(this, 'episode');
 		var id = this.dataset.episode_id;
-		var thisButton = this;
 		$('#torrent-results-modal').data('episode_id', id);
 		$.ajax({
 			type: "GET",
@@ -95,7 +95,7 @@ $(function() {
 							for (var i = 0; i < torrents.length; i++) {
 								$('#torrent-results-container').append(torrentFunc(torrents[i]));
 							}
-							$(thisButton).toggleClass('btn-success');
+							$(episodeContainer).fadeOut(500);
 						}
 					});
 				}
