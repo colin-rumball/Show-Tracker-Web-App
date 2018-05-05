@@ -58,16 +58,34 @@ app.get('/', async (req, res) => {
 	});
 });
 
-async function TryUpdateAllInfo() {
-	var lastUpdate = mongoose.get('last-update');
-	// If it's been at least 24 hours since the last update
-	if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf()) {
-		await Show.update({}, {update_needed: true}, {multi: true});
-		await Episode.update({ premiered: false}, { update_needed: true }, { multi: true });
-		mongoose.set('last-update', moment().valueOf());
+async function TryUpdateAllInfo(res = null, immediate = false) {
+	var isUpdating = mongoose.get('currently-updating') || false;
+	if (!isUpdating) {
+		mongoose.set('currently-updating', true);
+		try {
+			var lastUpdate = mongoose.get('last-update');
+			// If it's been at least 24 hours since the last update
+			if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf() || immediate) {
+				await Show.update({}, {update_needed: true}, {multi: true});
+				await Episode.update({ removed: false}, { update_needed: true }, { multi: true });
+				mongoose.set('last-update', moment().valueOf());
+			}
+			await Show.UpdateShows();
+			await Episode.UpdateEpisodes();
+			if (res != null) {
+				res.sendStatus(200);
+			}
+		} catch(err) {
+			if (res != null) {
+				res.status(500).send(err);
+			}
+		}
+		mongoose.set('currently-updating', false);
+	} else {
+		if (res != null) {
+			res.status(500).send('The database is currently in the middle of an update. Please try again later.');
+		}
 	}
-	await Show.UpdateShows();
-	await Episode.UpdateEpisodes();
 }
 
 app.get('/show/:showName', async (req, res) => {
@@ -139,17 +157,7 @@ app.post('/show/:id', async (req, res) => {
 });
 
 app.post('/update', async (req, res) => {
-	try {
-		await Show.update({}, { update_needed: true }, { multi: true });
-		await Episode.update({ removed: false }, { update_needed: true }, { multi: true });
-		await Show.UpdateShows();
-		await Episode.UpdateEpisodes();
-		mongoose.set('last-update', moment().valueOf());
-		res.sendStatus(200);
-	} catch(err)
-	{
-		res.sendStatus(500);
-	}
+	await TryUpdateAllInfo(res, true);
 });
 
 app.post('/post-processing', async (req, res) => {
@@ -179,6 +187,9 @@ app.post('/post-processing', async (req, res) => {
 			if (download == null) {
 				throw new Error(`Download for ${torrent.name} not found. Attempt manual post processing and torrent removal.`);
 			}
+
+			// Update download with the file name in case the move fails
+			await download.update({ fileName: largestFile.name});
 
 			// Remove torrent from bittorrent
 			await removeTorrent(torrent.id);

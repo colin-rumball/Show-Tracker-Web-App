@@ -43,8 +43,8 @@ $(function() {
 			success: function () {
 				OnRequestSuccessful('All info updated successfully!');
 			},
-			error: function() {
-				OnRequestFailure('An error occurred while updating databse info.');
+			error: function(err) {
+				OnRequestFailure('An error occurred while updating database info: ' + err.responseText);
 			}
 		});
 	});
@@ -78,7 +78,6 @@ $(function() {
 
 	$('#episodes-container').on('click', '.download-button', function () {
 		$('#torrent-results-container').html('Searching...');
-		var episodeContainer = findAncestor(this, 'episode');
 		var id = this.dataset.episode_id;
 		$('#torrent-results-modal').data('episode_id', id);
 		$.ajax({
@@ -95,7 +94,6 @@ $(function() {
 							for (var i = 0; i < torrents.length; i++) {
 								$('#torrent-results-container').append(torrentFunc(torrents[i]));
 							}
-							$(episodeContainer).fadeOut(500);
 						}
 					});
 				}

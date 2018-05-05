@@ -63,19 +63,36 @@ episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, remove
 episodeSchema.statics.UpdateEpisodes = async function () {
 	var episodes = await Episode.find({update_needed: true});
 	// Loop through each episode
-	await Promise.all(episodes.map(async (episode) => {
-		var episodes_res = await getEpisodeData(episode.api_id, 1);
-		if (episodes_res != undefined) {
-			var episodes_json = JSON.parse(episodes_res);
-			var newEpisodeInfo = createEpisodeObject(episodes_json, null, episode.removed);
-			newEpisodeInfo.update_needed = false;
-			await episode.update(newEpisodeInfo);
-		}
-		else {
-			// Do something more here
-			console.log(`Failed to update data for ${episode.name} of show ${episode.show.name}`);
-		}
-	}));
+	if (episodes.length > 0) {
+		await Promise.all(episodes.map(async (episode) => {
+			var episodes_res = await getEpisodeData(episode.api_id, 1);
+			if (episodes_res != undefined) {
+				var episodes_json = JSON.parse(episodes_res);
+				var newEpisodeInfo = createEpisodeObject(episodes_json, null, episode.removed);
+				newEpisodeInfo.update_needed = false;
+				await episode.update(newEpisodeInfo);
+				return null;
+			}
+			else {
+				return episode;
+			}
+		})).then((failedEpisodes) => {
+			// Filter out the null episodes
+			failedEpisodes = failedEpisodes.filter(e => e != null)
+			if (failedEpisodes.length > 0) {
+				failedMessage = "These episodes failed to update: <ul>";
+				failedEpisodes.forEach(episode => {
+					var season = `s${("0" + episode.season).slice(-2)}`;
+					var episode = `e${("0" + episode.number).slice(-2)}`;
+					failedMessage += `<li>S${season}E${episode} of ${episode.show.name}</li>`
+				});
+				failedMessage = "</ul>";
+				throw new Error(failedMessage);
+			}
+		}).catch((err) => {
+			throw new Error(err);
+		});
+	}
 }
 
 async function getEpisodeData(api_id, requestAttempt) {

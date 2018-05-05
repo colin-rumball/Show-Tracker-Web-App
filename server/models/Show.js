@@ -35,22 +35,37 @@ showSchema.statics.PermanentlyRemoveShow = async function (mongo_id) {
 showSchema.statics.UpdateShows = async function () {
 	var shows = await Show.find({update_needed: true});
 	// Loop through each show
-	await Promise.all(shows.map(async (show) => {
-		// get api info
-		var showResponseData = await getShowData(show.api_id, 1);
-		if (showResponseData != undefined) {
-			var showJsonData = JSON.parse(showResponseData);
-			await show.update({
-				name: showJsonData.name,
-				image_url: showJsonData.image.original,
-				api_id: showJsonData.id,
-				update_needed: false
-			});
-		}
-		else {
-			console.log(`Failed to update data for ${show.name}`);
-		}
-	}));
+	if (shows.length > 0) {
+		await Promise.all(shows.map(async (show) => {
+			// get api info
+			var showResponseData = await getShowData(show.api_id, 1);
+			if (showResponseData != undefined) {
+				var showJsonData = JSON.parse(showResponseData);
+				await show.update({
+					name: showJsonData.name,
+					image_url: showJsonData.image.original,
+					api_id: showJsonData.id,
+					update_needed: false
+				});
+			}
+			else {
+				return show;
+			}
+		})).then((failedShows) => {
+			// Filter out the null shows
+			failedShows = failedShows.filter(s => s != null);
+			if (failedShows.length > 0) {
+				failedMessage = "These shows failed to update: <ul>";
+				failedShows.forEach(show => {
+					failedMessage += `<li>${show.name}</li>`
+				});
+				failedMessage = "</ul>";
+				throw new Error(failedMessage);
+			}
+		}).catch((err) => {
+			throw new Error(err);
+		});
+	}
 }
 
 async function getShowData(api_id, requestAttempt) {

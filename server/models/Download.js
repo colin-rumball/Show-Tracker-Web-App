@@ -5,6 +5,7 @@ var downloadSchema = new mongoose.Schema({
 	season: Number,
 	episode: Number,
 	showName: String,
+	fileName: String,
 	hash_string: String
 });
 
