@@ -97,7 +97,9 @@ async function getEpisodeData(api_id, requestAttempt) {
 	try {
 		return await request.get('http://api.tvmaze.com/episodes/' + api_id);
 	} catch (err) {
-		if (err.statusCode == 429 && requestAttempt <= process.env.MAX_REPEATED_REQUEST_ATTEMPTS) {
+		if (err.statusCode == 404) {
+			await Episode.remove({api_id: api_id});
+		} else if (err.statusCode == 429 && requestAttempt <= process.env.MAX_REPEATED_REQUEST_ATTEMPTS) {
 			return new Promise((resolve, reject) => { 
 					setTimeout(async () => { 
 					resolve(await getEpisodeData(api_id, requestAttempt + 1));
