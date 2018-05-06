@@ -5,7 +5,7 @@ function findAncestor(el, cls) {
 
 $(function() {
 	// NAV BUTTONS
-	$('.dropdown-item').click(function () {
+	$('.dropdown-show').click(function () {
 		var id = this.dataset.show_id;
 		var dropdown = findAncestor(this, 'dropdown');
 		var dropdownSelector = dropdown.getElementsByClassName('nav-show-selection')[0];
@@ -128,10 +128,11 @@ $(function() {
 
 		var dropDownContainer = findAncestor(this, 'dropdown');
 		var dropDownButton = showContainer.getElementsByClassName('dropdown-toggle')[0];
-		dropDownButton.innerHTML = (id == 0 ? 'All' : 'Season ' + id);
+		dropDownButton.innerHTML =this.innerHTML;
 	});
 	// Add Show
 	$('#new-show-results-container').on('click', '.new-show-button', function () {
+		OnNewRequest('Adding New Show', 'Adding new show and episodes to the database...');
 		var id = this.dataset.show_id;
 		var season = this.dataset.season_id;
 		$.ajax({
@@ -139,8 +140,11 @@ $(function() {
 			type: 'POST',
 			data: { season },
 			success: function(data) {
-				location.href = '/show/' + data.name;
-			}			
+				OnRequestSuccessful('Show and episodes added successfully!');
+			},
+			error: function (err) {
+				OnRequestFailure('An error occurred while adding the new show. Error: ' + err.responseText);
+			}	
 		});
 	});
 	// Torrent Selection

@@ -98,6 +98,7 @@ async function getEpisodeData(api_id, requestAttempt) {
 		return await request.get('http://api.tvmaze.com/episodes/' + api_id);
 	} catch (err) {
 		if (err.statusCode == 404) {
+			// If the api can't find it then remove the episode
 			await Episode.remove({api_id: api_id});
 		} else if (err.statusCode == 429 && requestAttempt <= process.env.MAX_REPEATED_REQUEST_ATTEMPTS) {
 			return new Promise((resolve, reject) => { 
