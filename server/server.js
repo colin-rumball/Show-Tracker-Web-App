@@ -36,6 +36,8 @@ app.use(favicon(path.join(__dirname, 'favicon', 'favicon.ico')));
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'hbs');
 
+mongoose.set('currently-updating', false);
+
 hbs.registerPartials(__dirname + '/../views/partials', () => {
 	console.log('Partials registered!');
 	app.listen(SERVER_PORT, () => {
@@ -72,6 +74,7 @@ async function TryUpdateAllInfo(res = null, immediate = false) {
 			}
 			await Show.UpdateShows();
 			await Episode.UpdateEpisodes();
+
 			if (res != null) {
 				res.sendStatus(200);
 			}

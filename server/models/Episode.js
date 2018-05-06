@@ -3,8 +3,6 @@ const request = require('request-promise-native'),
 	_ = require('lodash'),
 	mongoose = require('mongoose');
 
-var { Show } = require('./../models/Show');
-
 var episodeSchema = new mongoose.Schema({
 	name: String,
 	image_url: String,
