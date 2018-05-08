@@ -37,6 +37,7 @@ app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'hbs');
 
 mongoose.set('currently-updating', false);
+mongoose.set('currently-post-processing', false);
 
 hbs.registerPartials(__dirname + '/../views/partials', () => {
 	console.log('Partials registered!');
@@ -48,7 +49,7 @@ hbs.registerPartials(__dirname + '/../views/partials', () => {
 // ROUTE | GET
 
 app.get('/', async (req, res) => {
-	TryUpdateAllInfo();
+	TryToUpdateAllInfo();
 	var shows = await Show.find({});
 	var episodes = await Episode.GetSortedEpisodes({});
 	episodes.forEach((episode) => {
@@ -60,20 +61,27 @@ app.get('/', async (req, res) => {
 	});
 });
 
-async function TryUpdateAllInfo(res = null, immediate = false) {
+async function TryToUpdateAllInfo(res = null) {
 	var isUpdating = mongoose.get('currently-updating') || false;
 	if (!isUpdating) {
 		mongoose.set('currently-updating', true);
 		try {
-			var lastUpdate = mongoose.get('last-update');
-			// If it's been at least 24 hours since the last update
-			if (lastUpdate + process.env.UPDATE_FREQUENCY < moment().valueOf() || immediate) {
+			// Shows update less often than episodes
+			var lastShowUpdate = mongoose.get('last-show-update') || 1;
+			var timeToUpdateShows = lastShowUpdate + Number.parseInt(process.env.SHOW_UPDATE_FREQUENCY);
+			if (timeToUpdateShows < moment().valueOf()) {
 				await Show.update({}, {update_needed: true}, {multi: true});
-				await Episode.update({ removed: false}, { update_needed: true }, { multi: true });
-				mongoose.set('last-update', moment().valueOf());
+				mongoose.set('last-show-update', moment().valueOf());
 			}
-			await Show.UpdateShows();
+
+			var lastEpisodeUpdate = mongoose.get('last-episode-update') || 1;
+			var timeToUpdateEpisodes = lastEpisodeUpdate + Number.parseInt(process.env.EPISODE_UPDATE_FREQUENCY);
+			if (timeToUpdateEpisodes < moment().valueOf()) {
+				await Episode.update({ removed: false }, { update_needed: true }, { multi: true });
+				mongoose.set('last-episode-update', moment().valueOf());
+			}
 			await Episode.UpdateEpisodes();
+			await Show.UpdateShows();
 
 			if (res != null) {
 				res.sendStatus(200);
@@ -107,6 +115,24 @@ app.get('/show/:showName', async (req, res) => {
 	else {
 		res.sendStatus(404);
 	}
+});
+
+app.get('/torrents', async (req, res) => {
+	transmissionClient.get(async function (err, arg) {
+		if (err) {
+			return res.status(500).send(err);
+		}
+
+		arg.torrents.forEach(torrent => {
+			torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
+			torrent.progress = torrent.percentDone * 100;
+			torrent.eta = Math.round(torrent.eta / 60) + ' Minutes';
+		});
+
+		res.render('pages/torrents', {
+			torrents: arg.torrents
+		});
+	});
 });
 
 app.get('/show/:id/episodes.json', async (req, res) => {
@@ -159,67 +185,86 @@ app.post('/show/:id', async (req, res) => {
 	res.send({name: newShow.name});
 });
 
-app.post('/update', async (req, res) => {
-	await TryUpdateAllInfo(res, true);
+app.post('/update-all', async (req, res) => {
+	var newValue = moment().valueOf() - (process.env.SHOW_UPDATE_FREQUENCY + 1000);
+	mongoose.set('last-show-update', newValue);
+	await TryToUpdateAllInfo(res);
+});
+
+app.post('/update-episodes', async (req, res) => {
+	var newValue = moment().valueOf() - (process.env.EPISODE_UPDATE_FREQUENCY + 1000);
+	mongoose.set('last-episode-update', newValue);
+	await TryToUpdateAllInfo(res);
 });
 
 app.post('/post-processing', async (req, res) => {
-	// Get all the active torrents
-	transmissionClient.get(async function (err, arg) {
-		if (err) {
-			return res.status(500).send(err);
-		}
-
-		// Process each torrent
-		await Promise.all(arg.torrents.map(async (torrent) => {
-			// Only proceed if the torrent is done downloading
-			if (torrent.status != transmissionClient.status.SEED &&
-				torrent.status != transmissionClient.status.SEED_WAIT)
-			{
-				return null;
+	var isPostProcessing = mongoose.get('currently-post-processing');
+	if (!isPostProcessing)
+	{
+		mongoose.set('currently-post-processing', true);
+		// Get all the active torrents
+		transmissionClient.get(async function (err, arg) {
+			if (err) {
+				mongoose.set('currently-post-processing', false);
+				return res.status(500).send(err);
 			}
 
-			// Find video file of episode
-			var largestFile = { length: 1 };
-			torrent.files.forEach(file => {
-				largestFile = file.length > largestFile.length ? file : largestFile;
-			});
-
-			// Get download object model
-			var download = await Download.findOne({ hash_string: torrent.hashString });
-			if (download == null) {
-				throw new Error(`Download for ${torrent.name} not found. Attempt manual post processing and torrent removal.`);
-			}
-
-			// Update download with the file name in case the move fails
-			await download.update({ fileName: largestFile.name});
-
-			// Remove torrent from bittorrent
-			await removeTorrent(torrent.id);
-			
-			// Tell post processor to move the file to Plex
-			var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
-			await request.post(process.env.POST_PROCESSING_URL, {
-				json: {
-					file: largestFile.name,
-					destination: destination,
-					type: download.type
+			// Process each torrent
+			await Promise.all(arg.torrents.map(async (torrent) => {
+				// Only proceed if the torrent is done downloading
+				if (torrent.status != transmissionClient.status.SEED &&
+					torrent.status != transmissionClient.status.SEED_WAIT)
+				{
+					return null;
 				}
-			});
 
-			// Return the name of the episode processed and delete the download object off of the DB
-			var season = `s${("0" + download.season).slice(-2)}`;
-			var episode = `e${("0" + download.episode).slice(-2)}`;
-			download.remove();
-			return (`${download.showName} ${season}${episode}`);
-		})).then((filesMoved) => {
-			// Only on success
-			res.setHeader('Content-Type', 'application/json');
-			res.send(JSON.stringify(filesMoved.filter(file => file != null)));
-		}).catch((err) => {
-			res.status(500).send(err);
+				// Find video file of episode
+				var largestFile = { length: 1 };
+				torrent.files.forEach(file => {
+					largestFile = file.length > largestFile.length ? file : largestFile;
+				});
+
+				// Get download object model
+				var download = await Download.findOne({ hash_string: torrent.hashString });
+				if (download == null) {
+					throw new Error(`Download for ${torrent.name} not found. Attempt manual post processing and torrent removal.`);
+				}
+
+				// Update download with the file name in case the move fails
+				await download.update({ fileName: largestFile.name});
+
+				// Remove torrent from bittorrent
+				await removeTorrent(torrent.id);
+				
+				// Tell post processor to move the file to Plex
+				var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
+				await request.post(process.env.POST_PROCESSING_URL, {
+					json: {
+						file: largestFile.name,
+						destination: destination,
+						type: download.type
+					}
+				});
+
+				// Return the name of the episode processed and delete the download object off of the DB
+				var season = `s${("0" + download.season).slice(-2)}`;
+				var episode = `e${("0" + download.episode).slice(-2)}`;
+				download.remove();
+				return (`${download.showName} ${season}${episode}`);
+			})).then((filesMoved) => {
+				// Only on success
+				res.setHeader('Content-Type', 'application/json');
+				res.send(JSON.stringify(filesMoved.filter(file => file != null)));
+			}).catch((err) => {
+				res.status(500).send(err);
+			});
+			mongoose.set('currently-post-processing', false);
 		});
-	});
+	} else {
+		if (res != null) {
+			res.status(500).send('The database is currently in the middle of processing. Please try again later.');
+		}
+	}
 });
 
 app.post('/torrents', async (req, res) => {

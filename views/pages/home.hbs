@@ -14,35 +14,7 @@
 	{{> modals/requestProcessor }}
 
 	<div class="container">
-		<div class="basic-nav">
-			<a href="/"><img src="/public/images/logo.png" alt="Logo" class="site-logo"> <h3 style="display:inline-block"> Show Tracker</h3></a>
-			{{!-- OPTIONS DROP DOWN --}}
-			<div class="dropdown">
-				<button class="btn btn-secondary" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-					<i class="fa fa-cog icon" aria-hidden="true"></i>
-				</button>
-				<div class="dropdown-menu" style="right: 0; left: auto;" aria-labelledby="dropdownMenuButton">
-					{{!-- ADD SHOW --}}
-					<input class="dropdown-item" type="button" value="Add New Show" id="add-show-button" data-toggle="modal" data-target="#search-modal">
-					{{!-- FORCE UPDATE --}}
-					<input class="dropdown-item" type="button" value="Update All" id="force-update-button" >
-					{{!-- POST PROCESSING --}}
-					<input class="dropdown-item" type="button" value="Post Processing" id="post-processing-button" >
-				</div>
-			</div>
-			 {{!-- SHOWS DROP DOWN --}}
-			<div class="dropdown">
-				<button class="btn btn-secondary dropdown-toggle nav-show-selection" type="button" id="dropdownMenuButton" data-toggle="dropdown"
-				 aria-haspopup="true" aria-expanded="false">
-					Shows
-				</button>
-				<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-					<button class="dropdown-item dropdown-show" data-show_id="0">All</button>
-					<div class="dropdown-divider"></div>
-					{{#each shows}} {{> show_dropdown}} {{/each}}
-				</div>
-			</div>
-		</div>
+		{{> nav}}
 		
 		{{!-- EPISODES --}}
 		<div id="episodes-container">

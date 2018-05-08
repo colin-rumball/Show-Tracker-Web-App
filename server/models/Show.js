@@ -74,8 +74,6 @@ async function addMissingEpisodes(show_doc) {
 	var episodesFromAPI = await getEpisodesData(show_doc.api_id, 1);
 	if (episodesFromAPI != undefined) {
 		var episodeJsonData = JSON.parse(episodesFromAPI);
-		var episodes = await Episode.find({ 'show.api_id': show_doc.api_id });
-
 		episodeJsonData.forEach(episode => {
 			Episode.AddEpisode(episode, show_doc, false);
 		});

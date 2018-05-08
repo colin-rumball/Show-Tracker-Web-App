@@ -1,0 +1,51 @@
+.table {
+	margin-top: 3vh;
+	border-radius: 20px;
+	padding: 18px;
+	background-color: #d4d8e0;
+	/* table-layout: fixed; */
+}
+
+.table thead th {
+	border: none;
+	background-color: #414141;
+	color: white;
+	text-align: center;
+}
+
+.table thead th:nth-of-type(1) {
+	border-radius: 20px 0 0 0;
+}
+
+.table thead th:last-of-type {
+	border-radius: 0 20px 0 0;
+}
+
+table tr:last-child td:first-child {
+	border-radius: 0 0 0 20px;
+}
+
+table tr:last-child td:last-child {
+	border-radius: 0 0 20px 0;
+}
+
+.table td {
+	border: none;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-align: center;
+}
+
+.table-entry {
+	white-space: nowrap;
+}
+
+.table-entry:hover {
+	background-color: #c5c9d1;
+	cursor: pointer;
+}
+
+.table-entry:active {
+	background-color: #b3b7be;
+	cursor: pointer;
+}

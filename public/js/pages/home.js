@@ -39,11 +39,25 @@ $(function() {
 		OnNewRequest('Updating Database Info', 'Updating all shows and episodes with new info...');
 		$.ajax({
 			type: "POST",
-			url: '/update',
+			url: '/update-all',
 			success: function () {
 				OnRequestSuccessful('All info updated successfully!');
 			},
 			error: function(err) {
+				OnRequestFailure('An error occurred while updating database info: ' + err.responseText);
+			}
+		});
+	});
+
+	$('#episode-update-button').click(function () {
+		OnNewRequest('Updating Episode Info', 'Updating episodes that have not been removed with new info...');
+		$.ajax({
+			type: "POST",
+			url: '/update-episodes',
+			success: function () {
+				OnRequestSuccessful('All info updated successfully!');
+			},
+			error: function (err) {
 				OnRequestFailure('An error occurred while updating database info: ' + err.responseText);
 			}
 		});

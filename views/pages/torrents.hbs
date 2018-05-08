@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	{{> head }}
+	<link rel="stylesheet" href="/public/css/table-style.css">
+	<link rel="stylesheet" type="text/css" href="/public/css/pages/home.css">
+	<title>Torrents | Show Tracker</title>
+</head>
+
+<body>
+	{{!-- MODALS --}}
+	{{> modals/requestProcessor }}
+
+	<div class="container">
+		{{> nav}}
+		
+		<table class="table" id="torrents-table">
+			<thead>
+				<tr>
+					<th scope="col">Name</th>
+					<th scope="col">Id</th>
+					<th scope="col">Download Rate</th>
+					<th scope="col">Progress</th>
+					<th scope="col">ETA</th>
+				</tr>
+			</thead>
+			<tbody id="torrents-table-body">
+				 {{#each torrents}} {{> listed_torrent}} {{/each}}
+			</tbody>
+		</table>
+	</div>
+</body>
+
+</html>
