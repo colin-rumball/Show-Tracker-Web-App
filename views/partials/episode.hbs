@@ -1,4 +1,4 @@
-<div class="episode {{#unless premiered}} faded {{/unless}} {{#if removed}} removed {{/if}}" >
+<div id="episode_{{_id}}" class="episode {{#unless premiered}} faded {{/unless}} {{#if removed}} removed {{else}} {{#if downloaded}} downloaded {{/if}} {{/if}}" >
 	<div class="show-image-container">
 		<img class="show-image" src="{{#if alternativeStyle}}{{image_url}}{{else}}{{show.image_url}}{{/if}}" alt="">
 	</div>

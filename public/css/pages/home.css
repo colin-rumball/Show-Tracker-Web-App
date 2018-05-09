@@ -90,6 +90,11 @@ a {
 
 }
 
+.downloaded {
+	background-color: rgb(229, 226, 226);
+	border: 1px solid rgb(102, 102, 102);
+}
+
 .show-image-container {
 	position: relative;
 	display: block;

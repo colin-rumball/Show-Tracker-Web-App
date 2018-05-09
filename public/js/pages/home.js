@@ -3,6 +3,8 @@ function findAncestor(el, cls) {
 	return el;
 }
 
+var CurrentEpisode;
+
 $(function() {
 	// NAV BUTTONS
 	$('.dropdown-show').click(function () {
@@ -74,7 +76,11 @@ $(function() {
 					message = 'Files moved successfully: <ul>';
 					for (var i = 0; i < arr.length; i++)
 					{
-						message += `<li>${arr[i]}</li>`;
+						var episodeContainer = $('#episode_' + arr[i].id);
+						if (episodeContainer) {
+							$(episodeContainer).fadeOut(500);
+						}
+						message += `<li>${arr[i].message}</li>`;
 					}
 					message += '</ul>';
 				} else {
@@ -91,6 +97,7 @@ $(function() {
 	// EPISODE STUFF ( DOWNLOAD / REMOVE )
 
 	$('#episodes-container').on('click', '.download-button', function () {
+		CurrentEpisode = findAncestor(this, 'episode');
 		$('#torrent-results-container').html('Searching...');
 		var id = this.dataset.episode_id;
 		$('#torrent-results-modal').data('episode_id', id);
@@ -144,6 +151,7 @@ $(function() {
 		var dropDownButton = showContainer.getElementsByClassName('dropdown-toggle')[0];
 		dropDownButton.innerHTML =this.innerHTML;
 	});
+
 	// Add Show
 	$('#new-show-results-container').on('click', '.new-show-button', function () {
 		OnNewRequest('Adding New Show', 'Adding new show and episodes to the database...');
@@ -161,6 +169,7 @@ $(function() {
 			}	
 		});
 	});
+
 	// Torrent Selection
 	$('#torrent-results-container').on('click', '.torrent-selection-button', function () {
 		OnNewRequest('Adding New Torrent', 'Attempting to add new torrent to download queue...');
@@ -171,6 +180,7 @@ $(function() {
 			type: 'POST',
 			data: data,
 			success: function () {
+				CurrentEpisode.classList.add('downloaded');
 				OnRequestSuccessful('Torrent added successfully!');
 			},
 			error: function (err) {
@@ -180,7 +190,6 @@ $(function() {
 	});
 
 	// NEW SHOW QUERY / FORM
-
 	$('#add-show-form').submit(function (e) {
 		e.preventDefault();
 

@@ -246,15 +246,28 @@ app.post('/post-processing', async (req, res) => {
 					}
 				});
 
-				// Return the name of the episode processed and delete the download object off of the DB
-				var season = `s${("0" + download.season).slice(-2)}`;
-				var episode = `e${("0" + download.episode).slice(-2)}`;
+				// Mark the episode as removed
+				await Episode.RemoveEpisode(download.episode_mongo_id);
+
+				// Return the download of the episode processed and delete the download object off of the DB
 				download.remove();
-				return (`${download.showName} ${season}${episode}`);
-			})).then((filesMoved) => {
+				return download; 
+			})).then((downloadsMoved) => {
+				downloadsMoved = downloadsMoved.filter(d => d != null)
+				var filesMoved = [];
+				downloadsMoved.forEach(download => {
+					var season = `s${("0" + download.season).slice(-2)}`;
+					var episode = `e${("0" + download.episode).slice(-2)}`;
+					filesMoved.push({
+						message: `${download.showName} ${season}${episode}`,
+						id: download.episode_mongo_id
+					});
+				});
+				
 				// Only on success
 				res.setHeader('Content-Type', 'application/json');
-				res.send(JSON.stringify(filesMoved.filter(file => file != null)));
+				var responseMessage = JSON.stringify(filesMoved);
+				res.send(responseMessage);
 			}).catch((err) => {
 				res.status(500).send(err);
 			});
@@ -270,8 +283,8 @@ app.post('/post-processing', async (req, res) => {
 app.post('/torrents', async (req, res) => {
 	var magnetLink = req.body.link;
 	var id = req.body.episode_id;
-	Episode.RemoveEpisode(id);
 	var episode = await Episode.findById(id);
+	await episode.update({ downloaded: true});
 	var showName = episode.show.name;
 	transmissionClient.addUrl(magnetLink, function(err, arg) {
 		if (err) {
@@ -282,6 +295,7 @@ app.post('/torrents', async (req, res) => {
 			type: 'tvshow',
 			season: episode.season,
 			episode: episode.number,
+			episode_mongo_id: episode._id,
 			showName: showName,
 			hash_string: arg.hashString
 		});

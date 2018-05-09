@@ -14,6 +14,7 @@ var episodeSchema = new mongoose.Schema({
 	summary: String,
 	api_id: Number,
 	removed: Boolean,
+	downloaded: Boolean,
 	show: {
 		name: String,
 		mongo_id: String,
