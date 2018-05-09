@@ -10,20 +10,13 @@ const express = require('express'),
 	hbs = require('hbs'),
 	prettyBytes = require('pretty-bytes'),
 	rarbgApi = require('rarbg-api'),
-	transmission = require('transmission'),
 	favicon = require('serve-favicon');
 
 var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
-
-var transmissionClient = new transmission({
-	host: process.env.BITTORRENT_IP,
-	port: process.env.BITTORRENT_PORT,
-	username: process.env.BITTORRENT_USER,
-	password: process.env.BITTORRENT_PASS
-});
+var {TransmissionWrapper} = require('./utils/transmission-wrapper');
 
 const SERVER_PORT = process.env.PORT;
 
@@ -118,11 +111,7 @@ app.get('/show/:showName', async (req, res) => {
 });
 
 app.get('/torrents', async (req, res) => {
-	transmissionClient.get(async function (err, arg) {
-		if (err) {
-			return res.status(500).send(err);
-		}
-
+	TransmissionWrapper.GetTorrents().then((arg) => {
 		arg.torrents.forEach(torrent => {
 			torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
 			torrent.progress = torrent.percentDone * 100;
@@ -132,6 +121,8 @@ app.get('/torrents', async (req, res) => {
 		res.render('pages/torrents', {
 			torrents: arg.torrents
 		});
+	}).catch((err) => {
+		return res.status(500).send(err);
 	});
 });
 
@@ -203,17 +194,12 @@ app.post('/post-processing', async (req, res) => {
 	{
 		mongoose.set('currently-post-processing', true);
 		// Get all the active torrents
-		transmissionClient.get(async function (err, arg) {
-			if (err) {
-				mongoose.set('currently-post-processing', false);
-				return res.status(500).send(err);
-			}
-
+		TransmissionWrapper.GetTorrents().then((arg) => {
 			// Process each torrent
 			await Promise.all(arg.torrents.map(async (torrent) => {
 				// Only proceed if the torrent is done downloading
-				if (torrent.status != transmissionClient.status.SEED &&
-					torrent.status != transmissionClient.status.SEED_WAIT)
+				if (torrent.status != TransmissionWrapper.status.SEED &&
+					torrent.status != TransmissionWrapper.status.SEED_WAIT)
 				{
 					return null;
 				}
@@ -234,7 +220,7 @@ app.post('/post-processing', async (req, res) => {
 				await download.update({ fileName: largestFile.name});
 
 				// Remove torrent from bittorrent
-				await removeTorrent(torrent.id);
+				await TransmissionWrapper.RemoveTorrent(torrent.id);
 				
 				// Tell post processor to move the file to Plex
 				var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
@@ -272,6 +258,9 @@ app.post('/post-processing', async (req, res) => {
 				res.status(500).send(err);
 			});
 			mongoose.set('currently-post-processing', false);
+		}).catch((err) => {
+			mongoose.set('currently-post-processing', false);
+			return res.status(500).send(err);
 		});
 	} else {
 		if (res != null) {
@@ -286,11 +275,7 @@ app.post('/torrents', async (req, res) => {
 	var episode = await Episode.findById(id);
 	await episode.update({ downloaded: true});
 	var showName = episode.show.name;
-	transmissionClient.addUrl(magnetLink, function(err, arg) {
-		if (err) {
-			return res.status(500).send(err);
-		}
-
+	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
 		var newDownload = new Download({
 			type: 'tvshow',
 			season: episode.season,
@@ -301,6 +286,8 @@ app.post('/torrents', async (req, res) => {
 		});
 		newDownload.save();
 		res.sendStatus(200);
+	}).catch((err) => {
+		res.status(500).send(err)
 	});
 });
 
@@ -342,15 +329,4 @@ async function getTorrents(query) {
 		}
 	}
 	return torrents;
-}
-
-async function removeTorrent(torrentId) {
-	return new Promise((resolve, reject) => {
-		transmissionClient.remove([torrentId], function (err) {
-			if (err) {
-				reject(err);
-			}
-			resolve();
-		});
-	});
 }
