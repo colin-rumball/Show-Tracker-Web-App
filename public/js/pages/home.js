@@ -76,9 +76,11 @@ $(function() {
 					message = 'Files moved successfully: <ul>';
 					for (var i = 0; i < arr.length; i++)
 					{
-						var episodeContainer = $('#episode_' + arr[i].id);
-						if (episodeContainer) {
-							$(episodeContainer).fadeOut(500);
+						if (arr[i].id != null) {
+							var episodeContainer = $('#episode_' + arr[i].id);
+							if (episodeContainer) {
+								$(episodeContainer).fadeOut(500);
+							}
 						}
 						message += `<li>${arr[i].message}</li>`;
 					}

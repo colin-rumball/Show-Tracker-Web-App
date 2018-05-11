@@ -204,7 +204,7 @@ app.post('/post-processing', async (req, res) => {
 					return null;
 				}
 
-				// Find video file of episode
+				// Find video file
 				var largestFile = { length: 1 };
 				torrent.files.forEach(file => {
 					largestFile = file.length > largestFile.length ? file : largestFile;
@@ -223,7 +223,10 @@ app.post('/post-processing', async (req, res) => {
 				await TransmissionWrapper.RemoveTorrent(torrent.id);
 				
 				// Tell post processor to move the file to Plex
-				var destination = path.join(download.showName, `Season ${download.season}`, largestFile.name);
+				var destination = 
+					download.type == 'tvshow' ? 
+					path.join(download.showName, `Season ${download.season}`, largestFile.name) :
+					largestFile.name;
 				await request.post(process.env.POST_PROCESSING_URL, {
 					json: {
 						file: largestFile.name,
@@ -233,21 +236,27 @@ app.post('/post-processing', async (req, res) => {
 				});
 
 				// Mark the episode as removed
-				await Episode.RemoveEpisode(download.episode_mongo_id);
+				if (download.type == 'tvshow') {
+					await Episode.RemoveEpisode(download.episode_mongo_id);
+				}
 
-				// Return the download of the episode processed and delete the download object off of the DB
+				// Return the download of the file and delete the download object off of the DB
 				download.remove();
 				return download; 
 			})).then((downloadsMoved) => {
 				downloadsMoved = downloadsMoved.filter(d => d != null)
 				var filesMoved = [];
 				downloadsMoved.forEach(download => {
-					var season = `s${("0" + download.season).slice(-2)}`;
-					var episode = `e${("0" + download.episode).slice(-2)}`;
-					filesMoved.push({
-						message: `${download.showName} ${season}${episode}`,
-						id: download.episode_mongo_id
-					});
+					var obj = {};
+					if (download.type == 'tvshow') {
+						var season = `s${("0" + download.season).slice(-2)}`;
+						var episode = `e${("0" + download.episode).slice(-2)}`;
+						obj.message = `${download.showName} ${season}${episode}`;
+						obj.id = download.episode_mongo_id;
+					} else {
+						obj.message = download.fileName;
+					}
+					filesMoved.push(obj);
 				});
 				
 				// Only on success
@@ -282,6 +291,22 @@ app.post('/torrents', async (req, res) => {
 			episode: episode.number,
 			episode_mongo_id: episode._id,
 			showName: showName,
+			fileName: 'a tvshow',
+			hash_string: arg.hashString
+		});
+		newDownload.save();
+		res.sendStatus(200);
+	}).catch((err) => {
+		res.status(500).send(err)
+	});
+});
+
+app.post('/movie-torrents', async (req, res) => {
+	var magnetLink = req.body.link;
+	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
+		var newDownload = new Download({
+			type: 'movie',
+			fileName: 'a movie',
 			hash_string: arg.hashString
 		});
 		newDownload.save();

@@ -7,6 +7,8 @@ var transmissionClient = new transmission({
 	password: process.env.BITTORRENT_PASS
 });
 
+var activeRequest = false;
+
 module.exports.GetTorrents = async function() {
     return new Promise(async (resolve, reject) => {
         transmissionClient.get(async function (err, arg) {
@@ -42,4 +44,4 @@ module.exports.RemoveTorrent = async function(torrentId) {
 	});
 }
 
-module.exports.Status = transmissionClient.status;
+module.exports.status = transmissionClient.status;

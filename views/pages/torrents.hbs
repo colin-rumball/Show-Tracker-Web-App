@@ -3,14 +3,25 @@
 
 <head>
 	{{> head }}
+	<script src="/public/js/pages/torrents.js"></script>
 	<link rel="stylesheet" href="/public/css/table-style.css">
 	<link rel="stylesheet" type="text/css" href="/public/css/pages/home.css">
 	<title>Torrents | Show Tracker</title>
+	<style>
+	#add-movie-button {
+		float: right;
+	}
+	#new-movie-magnet-link {
+		width: 100%;
+		resize: none;
+	}
+	</style>
 </head>
 
 <body>
 	{{!-- MODALS --}}
 	{{> modals/requestProcessor }}
+	{{> modals/addMovieForm }}
 
 	<div class="container">
 		<div class="basic-nav">
@@ -18,6 +29,7 @@
 				<img src="/public/images/logo.png" alt="Logo" class="site-logo">
 				<h3 style="display: inline-block">Show Tracker | Torrents</h3>
 			</a>
+			<input class="btn btn-info" id="add-movie-button" type="button" value="Add Movie">
 		</div>
 		
 		<table class="table" id="torrents-table">
