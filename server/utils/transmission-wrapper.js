@@ -7,9 +7,7 @@ var transmissionClient = new transmission({
 	password: process.env.BITTORRENT_PASS
 });
 
-function TransmissionWrapper(){}
-
-TransmissionWrapper.prototype.GetTorrents = async function() {
+module.exports.GetTorrents = async function() {
     return new Promise(async (resolve, reject) => {
         transmissionClient.get(async function (err, arg) {
             if (err) {
@@ -17,20 +15,11 @@ TransmissionWrapper.prototype.GetTorrents = async function() {
             }
     
             resolve(arg);
-            arg.torrents.forEach(torrent => {
-                torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
-                torrent.progress = torrent.percentDone * 100;
-                torrent.eta = Math.round(torrent.eta / 60) + ' Minutes';
-            });
-    
-            res.render('pages/torrents', {
-                torrents: arg.torrents
-            });
         }); 
 	});
 }
 
-TransmissionWrapper.prototype.AddUrl = async function(magnetLink) {
+module.exports.AddUrl = async function(magnetLink) {
     return new Promise(async (resolve, reject) => {
         transmissionClient.addUrl(magnetLink, function(err, arg) {
             if (err) {
@@ -42,7 +31,7 @@ TransmissionWrapper.prototype.AddUrl = async function(magnetLink) {
 	});
 }
 
-TransmissionWrapper.prototype.RemoveTorrent = async function(torrentId) {
+module.exports.RemoveTorrent = async function(torrentId) {
     return new Promise(async (resolve, reject) => {
         transmissionClient.remove([torrentId], function (err) {
 			if (err) {
@@ -53,8 +42,4 @@ TransmissionWrapper.prototype.RemoveTorrent = async function(torrentId) {
 	});
 }
 
-TransmissionWrapper.prototype.status = transmissionClient.status;
-
-module.exports = {
-    TransmissionWrapper
-}
+module.exports.Status = transmissionClient.status;

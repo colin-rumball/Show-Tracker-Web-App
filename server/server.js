@@ -16,7 +16,7 @@ var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
-var {TransmissionWrapper} = require('./utils/transmission-wrapper');
+var TransmissionWrapper = require('./utils/transmission-wrapper');
 
 const SERVER_PORT = process.env.PORT;
 
@@ -194,7 +194,7 @@ app.post('/post-processing', async (req, res) => {
 	{
 		mongoose.set('currently-post-processing', true);
 		// Get all the active torrents
-		TransmissionWrapper.GetTorrents().then((arg) => {
+		TransmissionWrapper.GetTorrents().then(async (arg) => {
 			// Process each torrent
 			await Promise.all(arg.torrents.map(async (torrent) => {
 				// Only proceed if the torrent is done downloading
