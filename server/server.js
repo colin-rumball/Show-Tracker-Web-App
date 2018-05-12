@@ -218,6 +218,8 @@ app.post('/post-processing', async (req, res) => {
 
 				// Update download with the file name in case the move fails
 				await download.update({ fileName: largestFile.name});
+				// Update locally as well for response message
+				download.fileName = largestFile.name;
 
 				// Remove torrent from bittorrent
 				await TransmissionWrapper.RemoveTorrent(torrent.id);
@@ -254,7 +256,7 @@ app.post('/post-processing', async (req, res) => {
 						obj.message = `${download.showName} ${season}${episode}`;
 						obj.id = download.episode_mongo_id;
 					} else {
-						obj.message = download.fileName;
+						obj.message = download.fileName.substring(0, 40) + '...';
 					}
 					filesMoved.push(obj);
 				});
