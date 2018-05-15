@@ -284,7 +284,6 @@ app.post('/torrents', async (req, res) => {
 	var magnetLink = req.body.link;
 	var id = req.body.episode_id;
 	var episode = await Episode.findById(id);
-	await episode.update({ downloaded: true});
 	var showName = episode.show.name;
 	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
 		var newDownload = new Download({
@@ -295,6 +294,9 @@ app.post('/torrents', async (req, res) => {
 			showName: showName,
 			fileName: 'a tvshow',
 			hash_string: arg.hashString
+		});
+		await episode.update({
+			downloaded: true
 		});
 		newDownload.save();
 		res.sendStatus(200);
