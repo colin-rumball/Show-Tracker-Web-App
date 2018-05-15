@@ -281,11 +281,12 @@ app.post('/post-processing', async (req, res) => {
 });
 
 app.post('/torrents', async (req, res) => {
-	var magnetLink = req.body.link;
-	var id = req.body.episode_id;
-	var episode = await Episode.findById(id);
-	var showName = episode.show.name;
-	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
+	try {
+		var magnetLink = req.body.link;
+		var id = req.body.episode_id;
+		var episode = await Episode.findById(id);
+		var showName = episode.show.name;
+		var arg = await TransmissionWrapper.AddUrl(magnetLink);
 		var newDownload = new Download({
 			type: 'tvshow',
 			season: episode.season,
@@ -295,14 +296,16 @@ app.post('/torrents', async (req, res) => {
 			fileName: 'a tvshow',
 			hash_string: arg.hashString
 		});
+
 		await episode.update({
 			downloaded: true
 		});
+			
 		newDownload.save();
 		res.sendStatus(200);
-	}).catch((err) => {
+	} catch(err) {
 		res.status(500).send(err)
-	});
+	}
 });
 
 app.post('/movie-torrents', async (req, res) => {
