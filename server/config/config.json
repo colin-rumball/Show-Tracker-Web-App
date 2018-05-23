@@ -9,7 +9,8 @@
 		"BITTORRENT_IP": "192.168.1.12",
 		"BITTORRENT_PORT": "9091",
 		"BITTORRENT_USER": "admin",
-		"BITTORRENT_PASS": "admin"
+		"BITTORRENT_PASS": "admin",
+		"REGISTRATION_CODE": "11111"
     },
     "development": {
         "PORT": 3000,
@@ -21,6 +22,7 @@
 		"BITTORRENT_IP": "192.168.1.12",
 		"BITTORRENT_PORT": "9091",
 		"BITTORRENT_USER": "admin",
-		"BITTORRENT_PASS": "admin"
+		"BITTORRENT_PASS": "admin",
+		"REGISTRATION_CODE": "11111"
     }
 }

@@ -5,6 +5,9 @@ const express = require('express'),
 	bodyParser = require('body-parser'),
 	fs = require('fs-extra'),
 	_ = require('lodash'),
+	passport = require('passport'),
+	LocalStrategy = require('passport-local'),
+	passportLocalMongoose = require('passport-local-mongoose'),
 	path = require('path'),
 	moment = require('moment'),
 	hbs = require('hbs'),
@@ -16,6 +19,7 @@ var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
+var {User} = require('./models/User');
 var TransmissionWrapper = require('./utils/transmission-wrapper');
 
 const SERVER_PORT = process.env.PORT;
@@ -24,10 +28,15 @@ var app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(favicon(path.join(__dirname, 'favicon', 'favicon.ico')));
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'hbs');
+
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 mongoose.set('currently-updating', false);
 mongoose.set('currently-post-processing', false);
@@ -40,6 +49,32 @@ hbs.registerPartials(__dirname + '/../views/partials', () => {
 });
 
 // ROUTE | GET
+
+app.get('/register', async (req, res) => {
+	res.render('pages/userPage', {
+		title: "Register",
+		buttonText: "Register",
+		url: "/register",
+		showCode: true
+	});
+});
+
+app.get('/sign-in', async (req, res) => {
+	res.render('pages/userPage', {
+		title: "Sign In",
+		buttonText: "Sign In",
+		url: "/sign-in",
+		showCode: false
+	});
+});
+
+app.use(function(req, res, next) {
+	if (req.isAuthenticated()) {
+		return next();
+	}
+	req.session.returnTo = req.url;
+	res.redirect('/sign-in');
+});
 
 app.get('/', async (req, res) => {
 	TryToUpdateAllInfo();
@@ -321,6 +356,32 @@ app.post('/movie-torrents', async (req, res) => {
 	}).catch((err) => {
 		res.status(500).send(err)
 	});
+});
+
+app.post('/register', (req, res) => {
+	var code = req.body.code;
+	if (code == process.env.REGISTRATION_CODE) {
+		User.register(new User({ username: req.body.username }), req.body.password, (err, user) => {
+			if (err) {
+				return res.sendStatus(500);
+			}
+
+			passport.authenticate('local')(req, res, () => {
+				res.redirect('/');
+			});
+		});
+	}
+	else
+	{
+		res.sendStatus(401);
+	}
+});
+
+app.post('/sign-in', passport.authenticate('local', {
+	successReturnToOrRedirect: '/',
+	failureRedirect: '/sign-in'
+}), (req, res) => {
+	
 });
 
 // ROUTE | DELETE
