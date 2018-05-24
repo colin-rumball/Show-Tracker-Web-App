@@ -10,7 +10,8 @@
 		"BITTORRENT_PORT": "9091",
 		"BITTORRENT_USER": "admin",
 		"BITTORRENT_PASS": "admin",
-		"REGISTRATION_CODE": "11111"
+		"REGISTRATION_CODE": "11111",
+		"SESSION_SECRET": "iPqnq4CHiyMVwERW"
     },
     "development": {
         "PORT": 3000,
@@ -23,6 +24,7 @@
 		"BITTORRENT_PORT": "9091",
 		"BITTORRENT_USER": "admin",
 		"BITTORRENT_PASS": "admin",
-		"REGISTRATION_CODE": "11111"
+		"REGISTRATION_CODE": "11111",
+		"SESSION_SECRET": "iPqnq4CHiyMVwERW"
     }
 }

@@ -26,6 +26,11 @@ const SERVER_PORT = process.env.PORT;
 
 var app = express();
 
+app.use(require('express-session')({
+	secret: process.env.SESSION_SECRET,
+	resave: false,
+	saveUninitialized: false
+}));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
@@ -68,11 +73,34 @@ app.get('/sign-in', async (req, res) => {
 	});
 });
 
+app.post('/register', (req, res) => {
+	var code = req.body.code;
+	if (code == process.env.REGISTRATION_CODE) {
+		User.register(new User({ username: req.body.username }), req.body.password, (err, user) => {
+			if (err) {
+				return res.sendStatus(500);
+			}
+
+			passport.authenticate('local')(req, res, () => {
+				res.redirect('/');
+			});
+		});
+	}
+	else {
+		res.sendStatus(401);
+	}
+});
+
+app.post('/sign-in', passport.authenticate('local', {
+		successReturnToOrRedirect: '/',
+		failureRedirect: '/sign-in'
+	}), (req, res) => {
+});
+
 app.use(function(req, res, next) {
 	if (req.isAuthenticated()) {
 		return next();
 	}
-	req.session.returnTo = req.url;
 	res.redirect('/sign-in');
 });
 
@@ -356,32 +384,6 @@ app.post('/movie-torrents', async (req, res) => {
 	}).catch((err) => {
 		res.status(500).send(err)
 	});
-});
-
-app.post('/register', (req, res) => {
-	var code = req.body.code;
-	if (code == process.env.REGISTRATION_CODE) {
-		User.register(new User({ username: req.body.username }), req.body.password, (err, user) => {
-			if (err) {
-				return res.sendStatus(500);
-			}
-
-			passport.authenticate('local')(req, res, () => {
-				res.redirect('/');
-			});
-		});
-	}
-	else
-	{
-		res.sendStatus(401);
-	}
-});
-
-app.post('/sign-in', passport.authenticate('local', {
-	successReturnToOrRedirect: '/',
-	failureRedirect: '/sign-in'
-}), (req, res) => {
-	
 });
 
 // ROUTE | DELETE
