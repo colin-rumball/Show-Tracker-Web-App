@@ -1,6 +1,7 @@
 // Load in local config for current development env
 require('./config/config');
 
+// Packages
 const express = require('express'),
 	request = require('request-promise-native'),
 	bodyParser = require('body-parser'),
