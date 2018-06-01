@@ -47,6 +47,7 @@ passport.deserializeUser(User.deserializeUser());
 mongoose.set('currently-updating', false);
 mongoose.set('currently-post-processing', false);
 
+// Register partials for hbs then start listener
 hbs.registerPartials(__dirname + '/../views/partials', () => {
 	console.log('Partials registered!');
 	app.listen(SERVER_PORT, () => {
