@@ -1,3 +1,4 @@
+// Load in local config for current development env
 require('./config/config');
 
 const express = require('express'),
