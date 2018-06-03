@@ -21,6 +21,8 @@ var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
+var {QueuedDownload} = require('./models/QueuedDownload');
+var DownloadController = require('./utils/download-controller');
 var {User} = require('./models/User');
 var TransmissionWrapper = require('./utils/transmission-wrapper');
 var {SSE} = require('./utils/sse-middleware');
@@ -50,6 +52,13 @@ passport.deserializeUser(User.deserializeUser());
 
 mongoose.set('currently-updating', false);
 mongoose.set('currently-post-processing', false);
+
+hbs.registerHelper('ifCond', (v1, v2, options) => {
+	if (v1 === v2) {
+		return options.fn(this);
+	}
+	return options.inverse(this);
+});
 
 // Register partials for hbs then start listener
 hbs.registerPartials(__dirname + '/../views/partials', () => {
@@ -176,15 +185,7 @@ app.get('/show/:showName', AuthUser, async (req, res) => {
 
 app.get('/torrents', AuthUser, async (req, res) => {
 	TransmissionWrapper.GetTorrents().then((arg) => {
-		arg.torrents.forEach(torrent => {
-			torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
-			torrent.progress = torrent.percentDone * 100;
-			torrent.eta = Math.round(torrent.eta / 60) + ' Minutes';
-		});
-
-		res.render('pages/torrents', {
-			torrents: arg.torrents
-		});
+		res.render('pages/torrents',);
 	}).catch((err) => {
 		return res.status(500).send(err);
 	});
@@ -348,28 +349,20 @@ app.post('/post-processing', AuthUser, async (req, res) => {
 	}
 });
 
+app.post('/torrent-controls', AuthUser, async (req, res) => {
+	var command = req.body.command;
+	if (command == 'pause') {
+		await TransmissionWrapper.StopAll();
+	} else if (command == 'play') {
+		await TransmissionWrapper.StartAll();
+	}
+});
+
 app.post('/torrents', AuthUser, async (req, res) => {
 	try {
-		var magnetLink = req.body.link;
 		var id = req.body.episode_id;
-		var episode = await Episode.findById(id);
-		var showName = episode.show.name;
-		var arg = await TransmissionWrapper.AddUrl(magnetLink);
-		var newDownload = new Download({
-			type: 'tvshow',
-			season: episode.season,
-			episode: episode.number,
-			episode_mongo_id: episode._id,
-			showName: showName,
-			fileName: 'a tvshow',
-			hash_string: arg.hashString
-		});
-
-		await episode.update({
-			downloaded: true
-		});
-			
-		newDownload.save();
+		var magnetLink = req.body.link;
+		await DownloadController.AddEpisodeDownload(id, magnetLink);
 		res.sendStatus(200);
 	} catch(err) {
 		res.status(500).send(err)
@@ -377,18 +370,13 @@ app.post('/torrents', AuthUser, async (req, res) => {
 });
 
 app.post('/movie-torrents', AuthUser, async (req, res) => {
-	var magnetLink = req.body.link;
-	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
-		var newDownload = new Download({
-			type: 'movie',
-			fileName: 'a movie',
-			hash_string: arg.hashString
-		});
-		newDownload.save();
+	try {
+		var magnetLink = req.body.link;
+		await DownloadController.AddMovieDownload(magnetLink);
 		res.sendStatus(200);
-	}).catch((err) => {
+	} catch (err) {
 		res.status(500).send(err)
-	});
+	}
 });
 
 // ROUTE | DELETE

@@ -4,24 +4,17 @@
 <head>
 	{{> head }}
 	<script src="/public/js/pages/torrents.js"></script>
-	<link rel="stylesheet" href="/public/css/table-style.css">
+	<link rel="stylesheet" type="text/css" href="/public/css/table-style.css">
 	<link rel="stylesheet" type="text/css" href="/public/css/pages/home.css">
+	<link rel="stylesheet" type="text/css" href="/public/css/pages/torrents.css">
 	<title>Torrents | Show Tracker</title>
-	<style>
-	#add-movie-button {
-		float: right;
-	}
-	#new-movie-magnet-link {
-		width: 100%;
-		resize: none;
-	}
-	</style>
 </head>
 
 <body>
 	{{!-- MODALS --}}
 	{{> modals/requestProcessor }}
 	{{> modals/addMovieForm }}
+	 {{> modals/torrentControls }}
 
 	<div class="container">
 		<div class="basic-nav">
@@ -30,6 +23,8 @@
 				<h3 style="display: inline-block">Show Tracker | Torrents</h3>
 			</a>
 			<input class="btn btn-info" id="add-movie-button" type="button" value="Add Movie">
+			<input class="btn btn-warning" id="pause-all-button" type="button" value="Pause All">
+			<input class="btn btn-success" id="play-all-button" type="button" value="Play All">
 		</div>
 		
 		<table class="table" id="torrents-table">
@@ -43,7 +38,6 @@
 				</tr>
 			</thead>
 			<tbody id="torrents-table-body">
-				 {{#each torrents}} {{> listed_torrent}} {{/each}}
 			</tbody>
 		</table>
 	</div>

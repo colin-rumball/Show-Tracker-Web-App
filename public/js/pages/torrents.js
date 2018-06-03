@@ -1,4 +1,26 @@
 $(function() {
+	$('#pause-all-button').click(function () {
+		fetch('/torrent-controls', {
+			method: 'post',
+				body: JSON.stringify({
+					command: 'pause'
+				}),
+				headers: {
+					'content-type': 'application/json'
+				},
+		});
+	});
+
+	$('#play-all-button').click(function () {
+		fetch('/torrent-controls', {
+			method: 'post',
+			body: JSON.stringify({command: 'play'}),
+			headers: {
+				'content-type': 'application/json'
+			},
+		});
+	});
+
 	$('#add-movie-button').click(function () {
 		$('#add-movie-modal').modal('toggle');
 	});

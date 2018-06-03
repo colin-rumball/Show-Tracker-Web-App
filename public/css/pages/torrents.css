@@ -1,0 +1,18 @@
+.btn {
+	float: right;
+	margin-left: 4px;
+	margin-right: 4px;
+}
+
+#new-movie-magnet-link {
+	width: 100%;
+	resize: none;
+}
+
+.progress-bar.green {
+	background-color: rgb(0, 155, 0);
+}
+
+.progress-bar.red {
+	background-color: rgb(173, 0, 0);
+}
