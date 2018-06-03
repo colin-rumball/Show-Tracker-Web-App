@@ -22,4 +22,39 @@ $(function() {
 			});
 		}
 	});
+
+	if (!!window.EventSource) {
+		var source = new EventSource('/torrents-stream')
+		var torrentTemplateFunc;
+
+		fetch('/public/templates/listed_torrent.hbs').then(function (response) {
+			if (response.ok) {
+				response.text().then((torrentTemplate) => {
+					torrentTemplateFunc = Handlebars.compile(torrentTemplate);
+				});
+			}
+		});
+
+		source.addEventListener('message', function (e) {
+			$("#torrents-table-body").html();
+
+			if (torrentTemplateFunc != undefined) {
+				var torrentArray = JSON.parse(e.data);
+				var newHtml = "";
+				for (var i = 0; i < torrentArray.length; i++)
+				{
+					newHtml += torrentTemplateFunc(torrentArray[i]);
+				}
+				$("#torrents-table-body").html(newHtml);
+			}
+		}, false)
+
+		source.addEventListener('open', function (e) {
+			
+		}, false)
+
+		source.addEventListener('error', function (e) {
+			source.close();
+		}, false)
+	}
 });

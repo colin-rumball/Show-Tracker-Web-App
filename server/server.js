@@ -23,6 +23,8 @@ var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
 var {User} = require('./models/User');
 var TransmissionWrapper = require('./utils/transmission-wrapper');
+var {SSE} = require('./utils/sse-middleware');
+var SSEController = require('./utils/sse-controller');
 
 const SERVER_PORT = process.env.PORT;
 
@@ -56,7 +58,7 @@ hbs.registerPartials(__dirname + '/../views/partials', () => {
 	});
 });
 
-// ROUTE | GET
+// ROUTE | AUTH
 
 app.get('/register', async (req, res) => {
 	res.render('pages/userPage', {
@@ -101,11 +103,13 @@ app.post('/sign-in', passport.authenticate('local', {
 });
 
 app.use(function(req, res, next) {
-	if (req.isAuthenticated()) {
+	if (req.isAuthenticated() || process.env.node_env != 'production') {
 		return next();
 	}
 	res.redirect('/sign-in');
 });
+
+// ROUTE | GET
 
 app.get('/', async (req, res) => {
 	TryToUpdateAllInfo();
@@ -190,6 +194,10 @@ app.get('/torrents', async (req, res) => {
 	}).catch((err) => {
 		return res.status(500).send(err);
 	});
+});
+
+app.get('/torrents-stream', SSE, async (req, res) => {
+	SSEController.StreamTorrentsToClient(res);
 });
 
 app.get('/show/:id/episodes.json', async (req, res) => {
