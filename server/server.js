@@ -25,6 +25,7 @@ var {User} = require('./models/User');
 var TransmissionWrapper = require('./utils/transmission-wrapper');
 var {SSE} = require('./utils/sse-middleware');
 var SSEController = require('./utils/sse-controller');
+var {AuthUser} = require('./utils/auth-middleware');
 
 const SERVER_PORT = process.env.PORT;
 
@@ -102,16 +103,9 @@ app.post('/sign-in', passport.authenticate('local', {
 	}), (req, res) => {
 });
 
-app.use(function(req, res, next) {
-	if (req.isAuthenticated() || process.env.node_env != 'production') {
-		return next();
-	}
-	res.redirect('/sign-in');
-});
-
 // ROUTE | GET
 
-app.get('/', async (req, res) => {
+app.get('/', AuthUser, async (req, res) => {
 	TryToUpdateAllInfo();
 	var shows = await Show.find({});
 	var episodes = await Episode.GetSortedEpisodes({});
@@ -162,7 +156,7 @@ async function TryToUpdateAllInfo(res = null) {
 	}
 }
 
-app.get('/show/:showName', async (req, res) => {
+app.get('/show/:showName', AuthUser, async (req, res) => {
 	var showName = req.params.showName;
 	var show = await Show.findOne({name: showName});
 	if (show != null) {
@@ -180,7 +174,7 @@ app.get('/show/:showName', async (req, res) => {
 	}
 });
 
-app.get('/torrents', async (req, res) => {
+app.get('/torrents', AuthUser, async (req, res) => {
 	TransmissionWrapper.GetTorrents().then((arg) => {
 		arg.torrents.forEach(torrent => {
 			torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
@@ -200,7 +194,7 @@ app.get('/torrents-stream', SSE, async (req, res) => {
 	SSEController.StreamTorrentsToClient(res);
 });
 
-app.get('/show/:id/episodes.json', async (req, res) => {
+app.get('/show/:id/episodes.json', AuthUser, async (req, res) => {
 	var id = req.params.id;
 	var query = id == 0 ? {} : { "show.mongo_id": id };
 	var episodes = await Episode.GetSortedEpisodes(query);
@@ -208,7 +202,7 @@ app.get('/show/:id/episodes.json', async (req, res) => {
 	res.send({episodes, shows});
 });
 
-app.get('/episode/torrents/:id', async (req, res) => {
+app.get('/episode/torrents/:id', AuthUser, async (req, res) => {
 	var mongo_id = req.params.id;
 	var episode = await Episode.findById(mongo_id)
 	if (episode != null) {
@@ -240,7 +234,7 @@ app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
 // ROUTE | POST
 
-app.post('/show/:id', async (req, res) => {
+app.post('/show/:id', AuthUser, async (req, res) => {
 	var api_id = req.params.id;
 	var season = Number.parseInt(req.body.season);
 	var newShow = await Show.AddShow(api_id);
@@ -250,19 +244,19 @@ app.post('/show/:id', async (req, res) => {
 	res.send({name: newShow.name});
 });
 
-app.post('/update-all', async (req, res) => {
+app.post('/update-all', AuthUser, async (req, res) => {
 	var newValue = moment().valueOf() - (process.env.SHOW_UPDATE_FREQUENCY + 1000);
 	mongoose.set('last-show-update', newValue);
 	await TryToUpdateAllInfo(res);
 });
 
-app.post('/update-episodes', async (req, res) => {
+app.post('/update-episodes', AuthUser, async (req, res) => {
 	var newValue = moment().valueOf() - (process.env.EPISODE_UPDATE_FREQUENCY + 1000);
 	mongoose.set('last-episode-update', newValue);
 	await TryToUpdateAllInfo(res);
 });
 
-app.post('/post-processing', async (req, res) => {
+app.post('/post-processing', AuthUser, async (req, res) => {
 	var isPostProcessing = mongoose.get('currently-post-processing');
 	if (!isPostProcessing)
 	{
@@ -354,7 +348,7 @@ app.post('/post-processing', async (req, res) => {
 	}
 });
 
-app.post('/torrents', async (req, res) => {
+app.post('/torrents', AuthUser, async (req, res) => {
 	try {
 		var magnetLink = req.body.link;
 		var id = req.body.episode_id;
@@ -382,7 +376,7 @@ app.post('/torrents', async (req, res) => {
 	}
 });
 
-app.post('/movie-torrents', async (req, res) => {
+app.post('/movie-torrents', AuthUser, async (req, res) => {
 	var magnetLink = req.body.link;
 	TransmissionWrapper.AddUrl(magnetLink).then((arg) => {
 		var newDownload = new Download({
@@ -399,7 +393,7 @@ app.post('/movie-torrents', async (req, res) => {
 
 // ROUTE | DELETE
 
-app.delete('/show/:id', async (req, res) => {
+app.delete('/show/:id', AuthUser, async (req, res) => {
 	var mongo_id = req.params.id;
 	var show = await Show.PermanentlyRemoveShow(mongo_id);
 	if (show != null) {
@@ -408,7 +402,7 @@ app.delete('/show/:id', async (req, res) => {
 	res.sendStatus(200);
 });
 
-app.delete('/episode/:id', async (req, res) => {
+app.delete('/episode/:id', AuthUser, async (req, res) => {
 	var mongo_id = req.params.id;
 	Episode.RemoveEpisode(mongo_id);
 	res.sendStatus(200);
