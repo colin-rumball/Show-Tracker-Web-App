@@ -18,16 +18,18 @@ var StartStream = async function() {
 		streamRunning = true;
 		intervalID = setInterval(async function() {
 			try {
+				var torrentsToSend = [];
 				var torrents = (await TransmissionWrapper.GetTorrents()).torrents;
 				torrents.forEach(torrent => {
 					torrent.downloadRate = Math.round(torrent.rateDownload / 1000) + ' kB/s';
 					torrent.progress = torrent.percentDone * 100;
 					torrent.eta = Math.round(torrent.eta / 60) + ' Minutes';
+					torrentsToSend.push(_.pick(torrent, ['hashString', 'name', 'id', 'downloadRate', 'progress', 'eta']));
 				});
-
+				
 				for (var i = 0; i < currentConnections.length; i++) {
 					var user = currentConnections[i];
-					var success = user.sseSend(torrents);
+					var success = user.sseSend(torrentsToSend);
 					if (!success) {
 						_.pull(currentConnections, user);
 					}

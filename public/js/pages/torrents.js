@@ -47,14 +47,14 @@ $(function() {
 				}
 				$("#torrents-table-body").html(newHtml);
 			}
-		}, false)
+		}, false);
 
 		source.addEventListener('open', function (e) {
-			
-		}, false)
+			console.log("Connected");
+		}, false);
 
 		source.addEventListener('error', function (e) {
 			source.close();
-		}, false)
+		}, false);
 	}
 });
