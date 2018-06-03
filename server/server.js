@@ -21,7 +21,6 @@ var {mongoose} = require('./db/mongoose');
 var {Episode} = require('./models/Episode');
 var {Show} = require('./models/Show');
 var {Download} = require('./models/Download');
-var {QueuedDownload} = require('./models/QueuedDownload');
 var DownloadController = require('./utils/download-controller');
 var {User} = require('./models/User');
 var TransmissionWrapper = require('./utils/transmission-wrapper');
