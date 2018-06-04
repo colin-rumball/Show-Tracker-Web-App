@@ -9,7 +9,8 @@ $(function() {
 				'content-type': 'application/json'
 			},
 			mode: 'cors',
-			cache: 'default'
+			cache: 'default',
+			credentials: 'same-origin'
 		});
 	});
 
@@ -21,7 +22,8 @@ $(function() {
 				'content-type': 'application/json'
 			},
 			mode: 'cors',
-			cache: 'default'
+			cache: 'default',
+			credentials: 'same-origin'
 		});
 	});
 
