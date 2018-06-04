@@ -2,12 +2,14 @@ $(function() {
 	$('#pause-all-button').click(function () {
 		fetch('/torrent-controls', {
 			method: 'post',
-				body: JSON.stringify({
-					command: 'pause'
-				}),
-				headers: {
-					'content-type': 'application/json'
-				},
+			body: JSON.stringify({
+				command: 'pause'
+			}),
+			headers: {
+				'content-type': 'application/json'
+			},
+			mode: 'cors',
+			cache: 'default'
 		});
 	});
 
@@ -18,6 +20,8 @@ $(function() {
 			headers: {
 				'content-type': 'application/json'
 			},
+			mode: 'cors',
+			cache: 'default'
 		});
 	});
 
