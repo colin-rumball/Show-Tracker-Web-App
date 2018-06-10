@@ -66,14 +66,27 @@ $(function() {
 		source.addEventListener('message', function (e) {
 			$("#torrents-table-body").html();
 
+			var noTorrentsMessage = $('#no-torrents');
+
 			if (torrentTemplateFunc != undefined) {
 				var torrentArray = JSON.parse(e.data);
-				var newHtml = "";
-				for (var i = 0; i < torrentArray.length; i++)
-				{
-					newHtml += torrentTemplateFunc(torrentArray[i]);
+				if (torrentArray.length > 0) {
+					if (noTorrentsMessage.length) {
+						noTorrentsMessage.remove();
+					}
+
+					var newHtml = "";
+					for (var i = 0; i < torrentArray.length; i++)
+					{
+						newHtml += torrentTemplateFunc(torrentArray[i]);
+					}
+					$("#torrents-table-body").html(newHtml);
 				}
-				$("#torrents-table-body").html(newHtml);
+				else {
+					if (noTorrentsMessage.length == 0) {
+						$('#torrents-table').after('<h3 id="no-torrents">No torrents to show</h3>')
+					}
+				}
 			}
 		}, false);
 

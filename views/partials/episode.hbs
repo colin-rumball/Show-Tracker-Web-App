@@ -9,12 +9,11 @@
 		<span class="date">{{{date_formatted}}}</span>
 		<div class="episode-name">{{name}}</div>
 		<div class="summary">
-			<a data-toggle="collapse" href="#collapse{{_id}}" role="button" aria-expanded="false" aria-controls="collapse{{_id}}">Show Summary</a>
+			<a data-toggle="collapse" href="#collapse{{_id}}" role="button" aria-expanded="false" aria-controls="collapse{{_id}}">Click here to display summary</a>
 			<div class="collapse" id="collapse{{_id}}">
 				{{{summary}}}
 			</div>
 		</div>
-		{{!-- <div class="summary">{{{summary}}}</div> --}}
 		<div class="episode-footer">
 			<span class="season-number">Season {{season}}, Episode {{number}}</span>
 			 {{#if premiered}}

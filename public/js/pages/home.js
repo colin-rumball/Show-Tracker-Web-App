@@ -8,33 +8,34 @@ var CurrentEpisode;
 $(function() {
 	// NAV BUTTONS
 	$('.dropdown-show').click(function () {
-		var id = this.dataset.show_id;
-		var dropdown = findAncestor(this, 'dropdown');
-		var dropdownSelector = dropdown.getElementsByClassName('nav-show-selection')[0];
+		window.location.href = `/show/${this.textContent}`;
+		// var id = this.dataset.show_id;
+		// var dropdown = findAncestor(this, 'dropdown');
+		// var dropdownSelector = dropdown.getElementsByClassName('nav-show-selection')[0];
 
-		dropdownSelector.innerHTML = this.textContent;
-		document.getElementById('episodes-container').innerHTML = '';
+		// dropdownSelector.innerHTML = this.textContent;
+		// document.getElementById('episodes-container').innerHTML = '';
 
-		$.ajax({
-			type: "GET",
-			url: '/public/templates/episode.hbs',
-			success: function (episodeTemplate) {
-				fetch('/show/' + id.toString() + '/episodes.json').then(function (response){
-					if (response.ok) {
-						response.json().then(function (data) {
-							var episodes = data.episodes;
-							var shows = data.shows;
-							var episodeFunc = Handlebars.compile(episodeTemplate);
-							for (var i = 0; i < episodes.length; i++) {
-								episodes[i].show.image_url = shows.find(show => show.api_id === episodes[i].show.api_id).image_url;
-								document.getElementById('episodes-container').innerHTML += episodeFunc(episodes[i]);
-							}
-						});
-					}
+		// $.ajax({
+		// 	type: "GET",
+		// 	url: '/public/templates/episode.hbs',
+		// 	success: function (episodeTemplate) {
+		// 		fetch('/show/' + id.toString() + '/episodes.json').then(function (response){
+		// 			if (response.ok) {
+		// 				response.json().then(function (data) {
+		// 					var episodes = data.episodes;
+		// 					var shows = data.shows;
+		// 					var episodeFunc = Handlebars.compile(episodeTemplate);
+		// 					for (var i = 0; i < episodes.length; i++) {
+		// 						episodes[i].show.image_url = shows.find(show => show.api_id === episodes[i].show.api_id).image_url;
+		// 						document.getElementById('episodes-container').innerHTML += episodeFunc(episodes[i]);
+		// 					}
+		// 				});
+		// 			}
 					
-				});
-			}
-		});
+		// 		});
+		// 	}
+		// });
 	});
 
 	$('#force-update-button').click(function() {

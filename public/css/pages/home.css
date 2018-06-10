@@ -159,6 +159,10 @@ a {
 	height: calc(73% - 44px);
 }
 
+.summary a {
+	padding-top: 15px;
+}
+
 .episode-footer {
 	position: absolute;
 	bottom: 0;
