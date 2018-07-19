@@ -35,7 +35,10 @@ var app = express();
 app.use(require('express-session')({
 	secret: process.env.SESSION_SECRET,
 	resave: false,
-	saveUninitialized: false
+	saveUninitialized: false,
+	cookie: {
+		maxAge: 365 * 24 * 60 * 60 * 1000 // 1 Year
+	}
 }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
