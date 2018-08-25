@@ -1,0 +1,36 @@
+.ShowTracker_overlay {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    z-index: 2147483647;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.8);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    transition: opacity 1500ms;
+}
+
+.ShowTracker_widget {
+    position: relative;
+    text-align: center;
+    font-size: 42px;
+
+    max-width: 500px;
+    margin: auto;
+    background-color: #f4f4f4;
+    height: auto;
+    padding: 20px;
+    border:  2px grey solid;
+}
+
+.ShowTracker_widget span {
+    display: inline-block;
+    vertical-align: middle;
+
+    color: #222222;
+}
