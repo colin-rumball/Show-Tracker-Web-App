@@ -11,4 +11,6 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
     setTimeout(() => {
         overlay.parentNode.removeChild(overlay);
     }, 2550);
+
+    sendResponse();
 });

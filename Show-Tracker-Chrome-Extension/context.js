@@ -32,9 +32,15 @@ function AddMagnetLink(data)
     .then((response) =>
     {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {data: "test"}, function(response) {
-                console.log('success');
-            });
+            if (tabs.length > 0)
+            {
+                if (tabs[0].id != null)
+                {
+                    chrome.tabs.sendMessage(tabs[0].id, {result: "success"}, function(response) {
+                        console.log(response);
+                    });
+                }
+            }
         });
     })
     .catch(err => console.log(err));
