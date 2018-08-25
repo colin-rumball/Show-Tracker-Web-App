@@ -398,6 +398,17 @@ app.delete('/episode/:id', AuthUser, async (req, res) => {
 	res.sendStatus(200);
 });
 
+app.delete('/torrents/:id', AuthUser, async (req, res) => {
+	try {
+		var torrent_id = parseInt(req.params.id);
+		await TransmissionWrapper.RemoveTorrent(torrent_id);
+		res.sendStatus(200);
+	}
+	catch (err) {
+		res.status(500).send(err);
+	}
+});
+
 async function getTorrents(query) {
 	var requestsMade = 0;
 	var torrents = null;

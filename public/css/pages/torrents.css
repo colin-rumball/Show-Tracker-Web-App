@@ -16,3 +16,12 @@
 .progress-bar.red {
 	background-color: rgb(173, 0, 0);
 }
+
+.remove-torrent-button {
+	padding: 10px 15px;
+}
+
+.remove-torrent-button:hover {
+	color: red;
+	cursor: pointer;
+}
