@@ -54,6 +54,7 @@ episodeSchema.statics.AddEpisode = async function (episodeData, show_doc, remove
 	var newEpisodeInfo = createEpisodeObject(episodeData, show_doc, removed);
 	var episode = await Episode.find({api_id: episodeData.id})
 	if (_.isEmpty(episode)) {
+
 		var newEpisode = new Episode(newEpisodeInfo);
 		await newEpisode.save();
 	}
@@ -117,9 +118,18 @@ function createEpisodeObject(episodeData, show_doc, removed) {
 	var airtimeInMillis = moment(episodeData.airdate + ' ' + episodeData.airtime, "YYYY-MM-DD HH:mm").valueOf();
 	var runtimeInMillis = (episodeData.runtime * 60000);
 
-	var date_formatted = '<p>' +
-		moment(episodeData.airtime, "HH:mm").format("h:mm A") + '</p><p>' +
-		moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY") + '</p>';
+	var date_formatted;
+	if (!airtimeInMillis)
+	{
+		airtimeInMillis = moment().valueOf() + 60000 * 60 * 24 * 365;
+		date_formatted = '<p> Date </p><p> Unknown </p>';
+	}
+	else
+	{
+		date_formatted = '<p>' +
+				moment(episodeData.airtime, "HH:mm").format("h:mm A") + '</p><p>' +
+				moment(episodeData.airdate, "YYYY-MM-DD").format("dddd, MMMM Do YYYY") + '</p>';
+	}
 
 	var episodeObject = {
 		name: episodeData.name,
