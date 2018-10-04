@@ -27,6 +27,7 @@ var TransmissionWrapper = require('./utils/transmission-wrapper');
 var {SSE} = require('./utils/sse-middleware');
 var SSEController = require('./utils/sse-controller');
 var {AuthUser} = require('./utils/auth-middleware');
+var MoveFile = require('./utils/file-mover');
 
 const SERVER_PORT = process.env.PORT;
 
@@ -125,7 +126,8 @@ app.get('/', AuthUser, async (req, res) => {
 	});
 	res.render('pages/home', {
 		episodes,
-		shows
+		shows,
+		version: '1.2.0'
 	});
 });
 
@@ -295,18 +297,12 @@ app.post('/post-processing', AuthUser, async (req, res) => {
 				// Remove torrent from bittorrent
 				await TransmissionWrapper.RemoveTorrent(torrent.id);
 				
-				// Tell post processor to move the file to Plex
+				// Move the file to Plex
 				var destination = 
 					download.type == 'tvshow' ? 
 					path.join(download.showName, `Season ${download.season}`, largestFile.name) :
 					largestFile.name;
-				await request.post(process.env.POST_PROCESSING_URL, {
-					json: {
-						file: largestFile.name,
-						destination: destination,
-						type: download.type
-					}
-				});
+				await MoveFile(largestFile.name, destination, download.type);
 
 				// Mark the episode as removed
 				if (download.type == 'tvshow') {
